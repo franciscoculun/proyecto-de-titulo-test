@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Operativo — AndesB2B</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div id="app-container" class="app-layout">
+        <aside class="sidebar">
+            <div class="brand">
+                <h2>ANDESB2B</h2>
+                <span>Marketplace B2B para Pymes</span>
+            </div>
+
+            <nav class="nav-menu">
+                <div class="nav-group">
+                    <span class="nav-title">PRINCIPAL</span>
+                    <button class="nav-link active" onclick="cambiarModulo('dashboard', this)">📊 Panel General</button>
+                </div>
+
+                <div id="menu-compras" class="nav-group">
+                    <span class="nav-title">A. MÓDULO DE COMPRAS</span>
+                    <button class="nav-link" onclick="cambiarModulo('explorar', this)">🛒 Explorar catálogo</button>
+                    <button class="nav-link" onclick="cambiarModulo('mis-pedidos', this)">📦 Mis pedidos</button>
+                </div>
+
+                <div id="menu-ventas" class="nav-group">
+                    <span class="nav-title">B. MÓDULO DE VENTAS</span>
+                    <button class="nav-link" onclick="cambiarModulo('gestionar-catalogo', this)">🏷️ Gestionar catálogo</button>
+                    <button class="nav-link" onclick="cambiarModulo('pedidos-recibidos', this)">🚚 Pedidos recibidos</button>
+                    <button class="nav-link" onclick="cambiarModulo('estado-cuenta', this)">💳 Estado de cuenta (3%)</button>
+                </div>
+
+                <div id="menu-admin" class="nav-group">
+                    <span class="nav-title">C. ADMINISTRACIÓN</span>
+                    <button class="nav-link" onclick="cambiarModulo('usuarios', this)">👥 Gestionar usuarios</button>
+                    <button class="nav-link" onclick="cambiarModulo('auditoria', this)">🔒 Auditoría de precios</button>
+                </div>
+            </nav>
+
+            <div class="user-card">
+                <strong id="info-empresa">Empresa</strong>
+                <small id="info-rut">RUT</small>
+                <span id="info-usuario" class="badge-role">Usuario / Rol</span>
+                <button class="btn btn-danger btn-sm full-width" style="margin-top:8px;" onclick="cerrarSesion()">Cerrar Sesión</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="topbar">
+                <h2 id="titulo-modulo">Panel General › Resumen Operativo y Financiero</h2>
+                <div class="comision-pill">Comisión Mes Acumulada (3%): <strong id="top-comision">$0 CLP</strong></div>
+            </header>
+
+            <div id="app-alert" class="alert hidden"></div>
+
+            <!-- 0. PANEL GENERAL -->
+            <section id="mod-dashboard" class="modulo">
+                <div class="kpi-grid">
+                    <div class="card kpi-card">
+                        <span class="kpi-label">VENTAS CONFIRMADAS</span>
+                        <h3 id="kpi-ventas">$0 CLP</h3>
+                        <small class="text-success">Operaciones liquidadas en Documentos_Cobro</small>
+                    </div>
+                    <div class="card kpi-card">
+                        <span class="kpi-label">OPERACIONES EN CURSO</span>
+                        <h3 id="kpi-pedidos">0 Pedidos</h3>
+                        <small>Flujo B2B de compras y ventas</small>
+                    </div>
+                    <div class="card kpi-card kpi-danger">
+                        <span class="kpi-label">COMISIÓN ACUMULADA (3%)</span>
+                        <h3 id="kpi-comision">$0 CLP</h3>
+                        <small>Exenta sobre costos de envío</small>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>Datos Corporativos de la Pyme Conectada</h3>
+                    <p id="resumen-empresa-datos"></p>
+                </div>
+            </section>
+
+            <!-- A1. EXPLORAR CATÁLOGO -->
+            <section id="mod-explorar" class="modulo hidden">
+                <div class="card">
+                    <div class="filter-bar">
+                        <input type="text" id="filtro-texto" placeholder="Buscar insumo o SKU..." oninput="renderizarCatalogo()">
+                        <select id="filtro-categoria" onchange="renderizarCatalogo()">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                    </div>
+                    <div id="grid-catalogo" class="product-grid"></div>
+                </div>
+
+                <div id="card-solicitar-pedido" class="card hidden">
+                    <h3>Emitir Solicitud de Pedido B2B (Estado inicial: COTIZANDO_ENVIO)</h3>
+                    <form id="form-crear-pedido" onsubmit="emitirPedido(event)">
+                        <input type="hidden" id="ped-id-producto">
+                        <div class="form-grid-3">
+                            <div>
+                                <label>Producto Seleccionado</label>
+                                <input type="text" id="ped-nombre-prod" readonly>
+                            </div>
+                            <div>
+                                <label>Precio Unitario Fijo ($ CLP)</label>
+                                <input type="text" id="ped-precio-fijo" readonly>
+                            </div>
+                            <div>
+                                <label>Cantidad a Solicitar</label>
+                                <input type="number" id="ped-cantidad" min="1" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Confirmar Solicitud de Cotización</button>
+                        <button type="button" class="btn btn-outline" onclick="document.getElementById('card-solicitar-pedido').classList.add('hidden')">Cancelar</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- A2. MIS PEDIDOS -->
+            <section id="mod-mis-pedidos" class="modulo hidden">
+                <div class="card">
+                    <h3>Listado de Órdenes de Compra Emitidas (Mis Pedidos)</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>PROVEEDOR</th>
+                                    <th>PRODUCTO Y CANT.</th>
+                                    <th>TRANSPORTE</th>
+                                    <th>SUBTOTAL + ENVÍO</th>
+                                    <th>SEGUIMIENTO</th>
+                                    <th>ESTADO</th>
+                                    <th>ACCIONES</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-mis-pedidos"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- B1. GESTIONAR CATÁLOGO -->
+            <section id="mod-gestionar-catalogo" class="modulo hidden">
+                <div class="card">
+                    <h3>Publicar o Editar Producto en Catálogo</h3>
+                    <form id="form-producto" onsubmit="guardarProducto(event)">
+                        <input type="hidden" id="prod-id">
+                        <div class="form-grid-3">
+                            <div>
+                                <label>Código SKU (Único)</label>
+                                <input type="text" id="prod-sku" required placeholder="SKU-401">
+                            </div>
+                            <div>
+                                <label>Nombre del Producto</label>
+                                <input type="text" id="prod-nombre" required placeholder="Soldadora Inverter 200A">
+                            </div>
+                            <div>
+                                <label>Categoría Industrial</label>
+                                <select id="prod-categoria" required></select>
+                            </div>
+                            <div>
+                                <label>Precio Unitario Neto ($ CLP)</label>
+                                <input type="number" id="prod-precio" min="0" step="1" required placeholder="145000">
+                            </div>
+                            <div>
+                                <label>Stock Disponible</label>
+                                <input type="number" id="prod-stock" min="0" required placeholder="50">
+                            </div>
+                            <div>
+                                <label>Estado de Publicación</label>
+                                <select id="prod-visible">
+                                    <option value="false">Borrador (No visible)</option>
+                                    <option value="true">Visible en Catálogo</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success">Guardar Producto</button>
+                        <button type="button" class="btn btn-outline" onclick="limpiarFormProducto()">Limpiar Formulario</button>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Inventario Publicado por la Pyme</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>SKU</th>
+                                    <th>PRODUCTO</th>
+                                    <th>CATEGORÍA</th>
+                                    <th>PRECIO UNITARIO</th>
+                                    <th>STOCK</th>
+                                    <th>VISIBLE</th>
+                                    <th>ACCIÓN</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-mi-catalogo"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- B2. PEDIDOS RECIBIDOS -->
+            <section id="mod-pedidos-recibidos" class="modulo hidden">
+                <div class="card">
+                    <h3>Listado de Pedidos Recibidos de Pymes Compradoras</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>PEDIDO</th>
+                                    <th>PYME COMPRADORA</th>
+                                    <th>PRODUCTO Y CANT.</th>
+                                    <th>SUBTOTAL</th>
+                                    <th>ENVÍO</th>
+                                    <th>ESTADO</th>
+                                    <th>SEGUIMIENTO</th>
+                                    <th>GESTIÓN</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-pedidos-recibidos"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div id="card-cotizar-envio" class="card hidden">
+                    <h3>Gestión del Pedido #<span id="cot-id-label"></span> — Cotización de Despacho y Simulador 3%</h3>
+                    <form id="form-cotizar" onsubmit="enviarCotizacion(event)">
+                        <input type="hidden" id="cot-id-pedido">
+                        <div class="form-grid-3">
+                            <div>
+                                <label>1. Medio de Transporte</label>
+                                <input type="text" id="cot-transporte" required placeholder="Starken Cargo Empresas">
+                            </div>
+                            <div>
+                                <label>2. Costo de Envío ($ CLP)</label>
+                                <input type="number" id="cot-costo" min="0" required oninput="actualizarSimulador()">
+                            </div>
+                            <div>
+                                <label>Simulación Financiera (Comisión 3% s/prod.)</label>
+                                <div id="simulador-resumen" class="simulador-box"></div>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Enviar Cotización al Comprador</button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- B3. ESTADO DE CUENTA -->
+            <section id="mod-estado-cuenta" class="modulo hidden">
+                <div class="card">
+                    <h3>Detalle de Transacciones Confirmadas y Retención de Comisión (3%)</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID DOC</th>
+                                    <th>PEDIDO</th>
+                                    <th>FECHA EMISIÓN</th>
+                                    <th>SUBTOTAL PROD.</th>
+                                    <th>MONTO ENVÍO (EXENTO)</th>
+                                    <th>COMISIÓN ANDESB2B (3%)</th>
+                                    <th>TOTAL OPERACIÓN</th>
+                                    <th>ESTADO COBRO</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-estado-cuenta"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- C1. GESTIÓN DE USUARIOS -->
+            <section id="mod-usuarios" class="modulo hidden">
+                <div class="card">
+                    <h3>Añadir Colaborador Autorizado en la Pyme</h3>
+                    <form id="form-nuevo-usuario" onsubmit="crearUsuarioPyme(event)" novalidate>
+                        <div class="form-grid-3">
+                            <div>
+                                <label>Nombre Completo</label>
+                                <input type="text" id="usu-nombre" required placeholder="Juan Pérez">
+                            </div>
+                            <div>
+                                <label>RUT Persona (Módulo 11)</label>
+                                <input type="text" id="usu-rut" required placeholder="14.444.444-4" oninput="formatearInputRut(this)">
+                            </div>
+                            <div>
+                                <label>Correo Corporativo (@dominio.cl / .com)</label>
+                                <input type="email" id="usu-email" required placeholder="jperez@empresa.cl">
+                            </div>
+                            <div>
+                                <label>Rol Operativo (RBAC)</label>
+                                <select id="usu-rol" required>
+                                    <option value="Comprador">Comprador</option>
+                                    <option value="Vendedor">Vendedor</option>
+                                    <option value="Administrador">Administrador</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Contraseña Inicial</label>
+                                <input type="password" id="usu-pass" required value="Andes2026!">
+                            </div>
+                            <div style="display:flex; align-items:flex-end;">
+                                <button type="submit" class="btn btn-success full-width">+ Añadir Usuario</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <h3>Nómina de Usuarios de la Empresa</h3>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>NOMBRE</th>
+                                    <th>RUT PERSONA</th>
+                                    <th>CORREO ELECTRÓNICO</th>
+                                    <th>ROL ASIGNADO</th>
+                                    <th>ESTADO</th>
+                                    <th>CAMBIAR ESTADO</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-usuarios"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- C2. AUDITORÍA DE PRECIOS -->
+            <section id="mod-auditoria" class="modulo hidden">
+                <div class="card">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3>Registro Histórico de Cambios de Precios (Log_Auditoria_Precios)</h3>
+                        <span class="badge badge-success">Solo Lectura (Trigger SQL)</span>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID LOG</th>
+                                    <th>FECHA MODIFICACIÓN</th>
+                                    <th>PRODUCTO / SKU</th>
+                                    <th>PRECIO ANTERIOR</th>
+                                    <th>PRECIO NUEVO</th>
+                                    <th>USUARIO RESPONSABLE</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabla-auditoria"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="../js/validaciones.js"></script>
+    <script src="../js/app.js"></script>
+</body>
+</html>

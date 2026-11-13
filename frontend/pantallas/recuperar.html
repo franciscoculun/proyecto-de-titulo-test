@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Contraseña — AndesB2B</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="auth-single-wrapper">
+        <header class="public-header">
+            <div>
+                <h1>ANDESB2B</h1>
+                <p>Recuperación de Credenciales Corporativas</p>
+            </div>
+            <div>
+                <a href="../index.html" class="btn btn-outline">← Volver a Iniciar Sesión</a>
+            </div>
+        </header>
+
+        <div id="public-alert" class="alert hidden"></div>
+
+        <div class="card auth-card-centered">
+            <h2>Recuperación de Contraseña por Correo</h2>
+            <p class="text-muted">Ingresa el correo corporativo registrado en tu Pyme para generar un código temporal de restablecimiento.</p>
+
+            <form id="form-recuperar" onsubmit="solicitarToken(event)" novalidate>
+                <label>Correo Electrónico Corporativo</label>
+                <input type="email" id="rec-email" required placeholder="pfuentes@ferreteriaaustral.cl">
+                <button type="submit" class="btn btn-dark full-width">Enviar Token de Recuperación</button>
+            </form>
+
+            <form id="form-restablecer" class="hidden" onsubmit="confirmarRestablecimiento(event)" style="margin-top:20px; border-top:1px solid #e2e8f0; padding-top:18px;" novalidate>
+                <label>Token Temporal Recibido</label>
+                <input type="text" id="rec-token" required>
+
+                <label>Nueva Contraseña (mínimo 6 caracteres)</label>
+                <input type="password" id="rec-nueva-pass" required minlength="6" placeholder="••••••••••••">
+
+                <button type="submit" class="btn btn-success full-width">Guardar Nueva Contraseña</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/validaciones.js"></script>
+    <script src="../js/auth.js"></script>
+</body>
+</html>

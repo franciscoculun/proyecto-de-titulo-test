@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Empresa — AndesB2B</title>
+    <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+    <div class="auth-wrapper">
+        <header class="public-header">
+            <div>
+                <h1>ANDESB2B</h1>
+                <p>Inscripción Corporativa de Nuevas Pymes</p>
+            </div>
+            <div>
+                <a href="../index.html" class="btn btn-outline">← Volver a Iniciar Sesión</a>
+            </div>
+        </header>
+
+        <div id="public-alert" class="alert hidden"></div>
+
+        <div class="card">
+            <h2>Formulario de Registro de Empresa y Cuenta Administrador Inicial</h2>
+            <form id="form-registro-empresa" onsubmit="registrarEmpresa(event)" novalidate>
+                <div class="form-grid-2">
+                    <div>
+                        <h3 class="section-subtitle">1. Datos Comerciales de la Pyme</h3>
+                        <label>RUT Empresa (Con validación Módulo 11)</label>
+                        <input type="text" id="reg-rut-empresa" required placeholder="76.543.210-3" oninput="formatearInputRut(this)">
+
+                        <label>Razón Social</label>
+                        <input type="text" id="reg-razon-social" required placeholder="Maestranza Austral SpA">
+
+                        <label>Giro Comercial</label>
+                        <input type="text" id="reg-giro" required placeholder="Fabricación de estructuras metálicas">
+
+                        <label>Región</label>
+                        <select id="reg-region" required>
+                            <option value="Los Lagos">Los Lagos</option>
+                            <option value="Biobío">Biobío</option>
+                            <option value="Metropolitana">Metropolitana</option>
+                            <option value="Valparaíso">Valparaíso</option>
+                            <option value="Araucanía">La Araucanía</option>
+                        </select>
+
+                        <label>Dirección Casa Matriz</label>
+                        <input type="text" id="reg-direccion" required placeholder="Av. Industrial 450, Puerto Montt">
+                    </div>
+
+                    <div>
+                        <h3 class="section-subtitle">2. Datos del Representante / Administrador</h3>
+                        <label>Nombre Completo</label>
+                        <input type="text" id="reg-nombre-admin" required placeholder="Pedro Fuentes">
+
+                        <label>RUT Persona (Con validación Módulo 11)</label>
+                        <input type="text" id="reg-rut-admin" required placeholder="11.111.111-1" oninput="formatearInputRut(this)">
+
+                        <label>Correo Electrónico Corporativo (@dominio.cl / .com)</label>
+                        <input type="email" id="reg-email-admin" required placeholder="contacto@empresa.cl">
+
+                        <label>Contraseña (mínimo 6 caracteres)</label>
+                        <input type="password" id="reg-pass-admin" required minlength="6" placeholder="••••••••••••">
+
+                        <div style="margin-top: 24px;">
+                            <button type="submit" class="btn btn-success full-width">Completar Registro y Crear Cuenta</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/validaciones.js"></script>
+    <script src="../js/auth.js"></script>
+</body>
+</html>
