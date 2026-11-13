@@ -19,10 +19,10 @@ async function iniciarSesion(e) {
     const password = document.getElementById('login-password').value;
 
     if (!validarFormatoCorreo(email)) {
-        return mostrarAlertaPublica('Ingresa un correo válido que incluya @ y extensión (.cl, .com, etc.).', true);
+        return mostrarAlertaPublica('Por favor, ingresa un correo corporativo válido (ej: contacto@empresa.cl).', true);
     }
     if (!password) {
-        return mostrarAlertaPublica('Debes ingresar tu contraseña.', true);
+        return mostrarAlertaPublica('Debes ingresar tu contraseña de acceso.', true);
     }
 
     const res = await fetch(`${API_URL}/auth/login`, {
@@ -31,10 +31,10 @@ async function iniciarSesion(e) {
         body: JSON.stringify({ email, password })
     });
     const data = await res.json();
-    if (!res.ok) return mostrarAlertaPublica(data.error || 'Error al iniciar sesión', true);
+    if (!res.ok) return mostrarAlertaPublica(data.error || 'No fue posible iniciar sesión.', true);
 
     sessionStorage.setItem('usuarioAndesB2B', JSON.stringify(data));
-    window.location.href = 'pantallas/panel.html';
+    window.location.href = '/pantallas/panel.html';
 }
 
 async function registrarEmpresa(e) {
@@ -45,16 +45,16 @@ async function registrarEmpresa(e) {
     const password = document.getElementById('reg-pass-admin').value;
 
     if (!validarRutChileno(rutEmpresa)) {
-        return mostrarAlertaPublica('El RUT de la Empresa es inválido. Verifica el dígito verificador (Módulo 11).', true);
+        return mostrarAlertaPublica('El RUT de la empresa no es válido. Revisa el dígito verificador.', true);
     }
     if (!validarRutChileno(rutUsuario)) {
-        return mostrarAlertaPublica('El RUT del Representante es inválido. Verifica el dígito verificador (Módulo 11).', true);
+        return mostrarAlertaPublica('El RUT del representante no es válido. Revisa el dígito verificador.', true);
     }
     if (!validarFormatoCorreo(email)) {
-        return mostrarAlertaPublica('El correo electrónico debe tener formato válido (ejemplo: usuario@empresa.cl o .com).', true);
+        return mostrarAlertaPublica('Ingresa un correo corporativo válido con @ y extensión (.cl, .com, etc.).', true);
     }
     if (!password || password.length < 6) {
-        return mostrarAlertaPublica('La contraseña debe tener al menos 6 caracteres.', true);
+        return mostrarAlertaPublica('La contraseña debe contener al menos 6 caracteres.', true);
     }
 
     const payload = {
@@ -77,8 +77,8 @@ async function registrarEmpresa(e) {
     const data = await res.json();
     if (!res.ok) return mostrarAlertaPublica(data.error, true);
 
-    mostrarAlertaPublica('Empresa registrada exitosamente. Redirigiendo al inicio de sesión...', false);
-    setTimeout(() => { window.location.href = '../index.html'; }, 1800);
+    mostrarAlertaPublica('Cuenta empresarial creada con éxito. Redirigiendo al portal de acceso...', false);
+    setTimeout(() => { window.location.href = '/index.html'; }, 1800);
 }
 
 async function solicitarToken(e) {
@@ -86,7 +86,7 @@ async function solicitarToken(e) {
     const email = document.getElementById('rec-email').value.trim();
 
     if (!validarFormatoCorreo(email)) {
-        return mostrarAlertaPublica('Ingresa un correo electrónico válido con @ y dominio (.cl, .com, etc.).', true);
+        return mostrarAlertaPublica('Ingresa un correo corporativo válido (ej: nombre@empresa.cl).', true);
     }
 
     const res = await fetch(`${API_URL}/auth/recuperar`, {
@@ -99,7 +99,7 @@ async function solicitarToken(e) {
 
     document.getElementById('rec-token').value = data.tokenDemo;
     document.getElementById('form-restablecer').classList.remove('hidden');
-    mostrarAlertaPublica(`${data.mensaje} (Token generado: ${data.tokenDemo})`, false);
+    mostrarAlertaPublica(`Código de verificación generado: ${data.tokenDemo}`, false);
 }
 
 async function confirmarRestablecimiento(e) {
@@ -120,6 +120,6 @@ async function confirmarRestablecimiento(e) {
     const data = await res.json();
     if (!res.ok) return mostrarAlertaPublica(data.error, true);
 
-    mostrarAlertaPublica('Contraseña actualizada con éxito. Redirigiendo al login...', false);
-    setTimeout(() => { window.location.href = '../index.html'; }, 1800);
+    mostrarAlertaPublica('Tu contraseña ha sido actualizada. Redirigiendo al inicio de sesión...', false);
+    setTimeout(() => { window.location.href = '/index.html'; }, 1800);
 }

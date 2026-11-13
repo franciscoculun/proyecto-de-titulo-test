@@ -7,7 +7,7 @@ window.addEventListener('DOMContentLoaded', () => {
     try {
         const guardado = sessionStorage.getItem('usuarioAndesB2B');
         if (!guardado) {
-            window.location.href = '../index.html';
+            window.location.href = '/index.html';
             return;
         }
         usuarioActual = JSON.parse(guardado);
@@ -15,7 +15,7 @@ window.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
         console.error('Error al inicializar sesión:', err);
         sessionStorage.removeItem('usuarioAndesB2B');
-        window.location.href = '../index.html';
+        window.location.href = '/index.html';
     }
 });
 
@@ -38,7 +38,7 @@ function configurarInterfazPorRol() {
 
     document.getElementById('info-empresa').textContent = emp.razonSocial || 'Empresa';
     document.getElementById('info-rut').textContent = `RUT: ${emp.rutEmpresa || '-'}`;
-    document.getElementById('info-usuario').textContent = `${usuarioActual.nombreCompleto || 'Usuario'} (${rol})`;
+    document.getElementById('info-usuario').textContent = `${usuarioActual.nombreCompleto || 'Usuario'} · ${rol}`;
 
     document.getElementById('menu-compras').classList.toggle('hidden', rol !== 'Administrador' && rol !== 'Comprador');
     document.getElementById('menu-ventas').classList.toggle('hidden', rol !== 'Administrador' && rol !== 'Vendedor');
@@ -50,7 +50,7 @@ function configurarInterfazPorRol() {
 
 window.cerrarSesion = function () {
     sessionStorage.removeItem('usuarioAndesB2B');
-    window.location.href = '../index.html';
+    window.location.href = '/index.html';
 };
 
 window.cambiarModulo = function (modulo, btnElement) {
@@ -64,14 +64,14 @@ window.cambiarModulo = function (modulo, btnElement) {
     }
 
     const titulos = {
-        'dashboard': 'Panel General - Resumen Operativo y Financiero',
-        'explorar': 'Módulo de Compras - Explorar Catálogo B2B',
-        'mis-pedidos': 'Módulo de Compras - Mis Pedidos Emitidos',
-        'gestionar-catalogo': 'Módulo de Ventas - Gestionar Catálogo e Inventario',
-        'pedidos-recibidos': 'Módulo de Ventas - Pedidos Recibidos y Cotización',
-        'estado-cuenta': 'Módulo de Ventas - Estado de Cuenta Mensual (3%)',
-        'usuarios': 'Administración - Gestión de Usuarios y Roles (RBAC)',
-        'auditoria': 'Administración - Registro de Auditoría de Precios'
+        'dashboard': 'Resumen Operativo y Financiero',
+        'explorar': 'Catálogo Mayorista de Proveedores',
+        'mis-pedidos': 'Seguimiento de Órdenes de Compra',
+        'gestionar-catalogo': 'Administración de Inventario y Catálogo',
+        'pedidos-recibidos': 'Gestión de Solicitudes y Despachos',
+        'estado-cuenta': 'Liquidaciones Mensuales y Comisiones',
+        'usuarios': 'Equipo de Trabajo y Permisos de Acceso',
+        'auditoria': 'Historial de Auditoría de Precios'
     };
     const tituloEl = document.getElementById('titulo-modulo');
     if (tituloEl && titulos[modulo]) tituloEl.textContent = titulos[modulo];
@@ -91,7 +91,7 @@ async function cargarDashboard() {
         const emp = usuarioActual.empresa || {};
         const idEmp = emp.idEmpresa;
         document.getElementById('resumen-empresa-datos').textContent =
-            `${emp.razonSocial || '-'} | RUT: ${emp.rutEmpresa || '-'} | Giro: ${emp.giro || '-'} | Dirección: ${emp.direccion || '-'} (${emp.region || '-'})`;
+            `${emp.razonSocial || '-'} | RUT: ${emp.rutEmpresa || '-'} | Giro: ${emp.giro || '-'} | Casa Matriz: ${emp.direccion || '-'} (${emp.region || '-'})`;
 
         const [resCobros, resCompras, resVentas] = await Promise.all([
             fetch(`${API_URL}/pedidos/estado-cuenta/${idEmp}`),
@@ -106,7 +106,7 @@ async function cargarDashboard() {
         const sumaComision = cobros.reduce((acc, c) => acc + Number(c.comision || 0), 0);
 
         document.getElementById('kpi-ventas').textContent = formatearCLP(sumaVentas);
-        document.getElementById('kpi-pedidos').textContent = `${compras.length + ventas.length} Pedidos (${ventas.length} ventas | ${compras.length} compras)`;
+        document.getElementById('kpi-pedidos').textContent = `${compras.length + ventas.length} Operaciones (${ventas.length} ventas · ${compras.length} compras)`;
         document.getElementById('kpi-comision').textContent = formatearCLP(sumaComision);
         document.getElementById('top-comision').textContent = formatearCLP(sumaComision);
     } catch (e) {
@@ -122,7 +122,7 @@ async function cargarCategorias() {
         const selFiltro = document.getElementById('filtro-categoria');
         const selForm = document.getElementById('prod-categoria');
 
-        if (selFiltro) selFiltro.innerHTML = '<option value="">Todas las categorías</option>';
+        if (selFiltro) selFiltro.innerHTML = '<option value="">Todos los rubros industriales</option>';
         if (selForm) selForm.innerHTML = '';
         categorias.forEach(c => {
             if (selFiltro) selFiltro.innerHTML += `<option value="${c.idCategoria}">${c.nombreCategoria}</option>`;
@@ -136,7 +136,7 @@ async function cargarCategorias() {
 async function cargarCatalogoActivo() {
     const res = await fetch(`${API_URL}/catalogo/activos`);
     catalogoGlobal = res.ok ? await res.json() : [];
-    renderizarCatalogo();
+    window.renderizarCatalogo();
 }
 
 window.renderizarCatalogo = function () {
@@ -154,9 +154,9 @@ window.renderizarCatalogo = function () {
                     <small class="badge badge-info">${p.sku} · ${p.categoria.nombreCategoria}</small>
                     <h4 style="margin-top:8px;">${p.nombreProducto}</h4>
                     <small>Proveedor: ${p.empresaVendedora.razonSocial}</small>
-                    <div class="product-price">${formatearCLP(p.precioUnitario)}</div>
-                    <p style="font-size:0.85rem; margin-bottom:10px;">Stock disponible: <strong>${p.stockDisponible} un.</strong></p>
-                    <button class="btn btn-primary btn-sm full-width" onclick="prepararSolicitud(${p.idProducto}, '${p.nombreProducto.replace(/'/g, "\\'")}', ${p.precioUnitario})">Solicitar Cantidades</button>
+                    <div class="product-price">${formatearCLP(p.precioUnitario)} <small style="font-size:0.75rem; font-weight:400;">neto c/u</small></div>
+                    <p style="font-size:0.85rem; margin-bottom:10px;">Disponibilidad: <strong>${p.stockDisponible} unidades</strong></p>
+                    <button class="btn btn-primary btn-sm full-width" onclick="prepararSolicitud(${p.idProducto}, '${p.nombreProducto.replace(/'/g, "\\'")}', ${p.precioUnitario})">Cotizar Pedido</button>
                 </div>
             `;
         });
@@ -185,7 +185,7 @@ window.emitirPedido = async function (e) {
     const data = await res.json();
     if (!res.ok) return mostrarAlerta(data.error, true);
 
-    mostrarAlerta('Solicitud de pedido creada en estado COTIZANDO_ENVIO.');
+    mostrarAlerta('Solicitud enviada al proveedor para cotización de despacho.');
     document.getElementById('card-solicitar-pedido').classList.add('hidden');
     window.cambiarModulo('mis-pedidos');
 };
@@ -203,11 +203,11 @@ async function cargarMiCatalogo() {
             <td>${p.nombreProducto}</td>
             <td>${p.categoria.nombreCategoria}</td>
             <td>${formatearCLP(p.precioUnitario)}</td>
-            <td>${p.stockDisponible}</td>
-            <td><span class="badge ${p.visible ? 'badge-success' : 'badge-warn'}">${p.visible ? 'Visible' : 'Borrador'}</span></td>
-            <td><button class="btn btn-primary btn-sm">Editar</button></td>
+            <td>${p.stockDisponible} un.</td>
+            <td><span class="badge ${p.visible ? 'badge-success' : 'badge-warn'}">${p.visible ? 'Publicado' : 'Borrador'}</span></td>
+            <td><button class="btn btn-primary btn-sm">Modificar</button></td>
         `;
-        tr.querySelector('button').addEventListener('click', () => cargarProductoEnForm(p));
+        tr.querySelector('button').addEventListener('click', () => window.cargarProductoEnForm(p));
         tbody.appendChild(tr);
     });
 }
@@ -254,7 +254,7 @@ window.guardarProducto = async function (e) {
     const data = await res.json();
     if (!res.ok) return mostrarAlerta(data.error, true);
 
-    mostrarAlerta(idProd ? 'Producto actualizado (si cambió el precio, se registró en Auditoría).' : 'Producto creado correctamente.');
+    mostrarAlerta(idProd ? 'Insumo actualizado en el catálogo.' : 'Nuevo insumo registrado con éxito.');
     window.limpiarFormProducto();
     cargarMiCatalogo();
 };
@@ -269,15 +269,17 @@ async function cargarMisPedidos() {
         const p = item.pedido;
         const det = item.detalles[0] || {};
         const prodTexto = det.producto ? `${det.producto.nombreProducto} (${det.cantidad} un.)` : '-';
-        let acciones = '-';
+        let acciones = '<span class="text-muted">En espera</span>';
 
         if (p.estadoPedido === 'COTIZANDO_ENVIO' && p.medioTransporte) {
             acciones = `
-                <button class="btn btn-success btn-sm" onclick="responderCotizacion(${p.idPedido}, true)">Aceptar Envío</button>
-                <button class="btn btn-danger btn-sm" onclick="responderCotizacion(${p.idPedido}, false)">Rechazar</button>
+                <button class="btn btn-success btn-sm" onclick="responderCotizacion(${p.idPedido}, true)">Aprobar Compra</button>
+                <button class="btn btn-danger btn-sm" onclick="responderCotizacion(${p.idPedido}, false)">Descartar</button>
             `;
         } else if (p.estadoPedido === 'EN_TRANSITO') {
             acciones = `<button class="btn btn-primary btn-sm" onclick="confirmarRecepcion(${p.idPedido})">Confirmar Recepción</button>`;
+        } else if (p.estadoPedido === 'FINALIZADO') {
+            acciones = `<span class="badge badge-success">Concluido</span>`;
         }
 
         tbody.innerHTML += `
@@ -285,7 +287,7 @@ async function cargarMisPedidos() {
                 <td><strong>#${p.idPedido}</strong></td>
                 <td>${p.empresaVendedora.razonSocial}</td>
                 <td>${prodTexto}</td>
-                <td>${p.medioTransporte || 'Por asignar'}</td>
+                <td>${p.medioTransporte || 'Pendiente de cotizar'}</td>
                 <td>${formatearCLP(item.subtotalProductos)} + ${formatearCLP(p.costoEnvio)}</td>
                 <td>${p.codigoSeguimiento || '-'}</td>
                 <td><span class="badge badge-info">${p.estadoPedido}</span></td>
@@ -305,12 +307,12 @@ async function cargarPedidosRecibidos() {
         const p = item.pedido;
         const det = item.detalles[0] || {};
         const prodTexto = det.producto ? `${det.producto.nombreProducto} (${det.cantidad} un.)` : '-';
-        let boton = '';
+        let boton = '<span class="text-muted">Sin acciones pendientes</span>';
 
         if (p.estadoPedido === 'COTIZANDO_ENVIO') {
-            boton = `<button class="btn btn-primary btn-sm" onclick="abrirCotizador(${p.idPedido}, ${item.subtotalProductos})">Cotizar Envío</button>`;
+            boton = `<button class="btn btn-primary btn-sm" onclick="abrirCotizador(${p.idPedido}, ${item.subtotalProductos})">Valorizar Despacho</button>`;
         } else if (p.estadoPedido === 'COMPRA_CONFIRMADA') {
-            boton = `<button class="btn btn-success btn-sm" onclick="ingresarTracking(${p.idPedido})">Ingresar Tracking</button>`;
+            boton = `<button class="btn btn-success btn-sm" onclick="ingresarTracking(${p.idPedido})">Informar Despacho</button>`;
         }
 
         tbody.innerHTML += `
@@ -321,7 +323,7 @@ async function cargarPedidosRecibidos() {
                 <td>${formatearCLP(item.subtotalProductos)}</td>
                 <td>${formatearCLP(p.costoEnvio)}</td>
                 <td><span class="badge badge-warn">${p.estadoPedido}</span></td>
-                <td>${p.codigoSeguimiento || 'Por asignar'}</td>
+                <td>${p.codigoSeguimiento || 'Sin asignar'}</td>
                 <td>${boton}</td>
             </tr>
         `;
@@ -342,7 +344,7 @@ window.actualizarSimulador = function () {
     const comision = Math.round(subtotalCotizacionActual * 0.03);
     const netoVendedor = subtotalCotizacionActual - comision + envio;
     document.getElementById('simulador-resumen').innerHTML =
-        `Subtotal Prod: <strong>${formatearCLP(subtotalCotizacionActual)}</strong> | Comisión 3%: <strong style="color:#dc2626">-${formatearCLP(comision)}</strong> | Neto Vendedor: <strong style="color:#047857">${formatearCLP(netoVendedor)}</strong>`;
+        `Venta Productos: <strong>${formatearCLP(subtotalCotizacionActual)}</strong> · Comisión (3%): <strong style="color:#dc2626">-${formatearCLP(comision)}</strong> · Recibes Neto: <strong style="color:#047857">${formatearCLP(netoVendedor)}</strong>`;
 };
 
 window.enviarCotizacion = async function (e) {
@@ -358,7 +360,7 @@ window.enviarCotizacion = async function (e) {
         body: JSON.stringify(payload)
     });
     if (res.ok) {
-        mostrarAlerta('Cotización de despacho enviada al comprador.');
+        mostrarAlerta('Propuesta de despacho enviada al comprador.');
         document.getElementById('card-cotizar-envio').classList.add('hidden');
         cargarPedidosRecibidos();
     }
@@ -373,25 +375,25 @@ window.responderCotizacion = async function (idPedido, aprobar) {
     const data = await res.json();
     if (!res.ok) return mostrarAlerta(data.error, true);
 
-    mostrarAlerta(aprobar ? 'Compra confirmada: se descontó el stock y se generó el Documento de Cobro (3%).' : 'Cotización rechazada.');
+    mostrarAlerta(aprobar ? 'Compra aprobada: inventario actualizado y documento de cobro emitido.' : 'Cotización descartada.');
     cargarMisPedidos();
 };
 
 window.ingresarTracking = async function (idPedido) {
-    const codigo = prompt('Ingresa el código de seguimiento del transportista (ej. STK-994821):', 'STK-994821');
+    const codigo = prompt('Ingresa el número de orden de transporte o seguimiento (ej: STK-994821):', 'STK-994821');
     if (!codigo) return;
     await fetch(`${API_URL}/pedidos/${idPedido}/seguimiento`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ codigoSeguimiento: codigo })
     });
-    mostrarAlerta('Código de seguimiento registrado. Pedido en estado EN_TRANSITO.');
+    mostrarAlerta('Despacho informado. La orden pasó a estado EN_TRANSITO.');
     cargarPedidosRecibidos();
 };
 
 window.confirmarRecepcion = async function (idPedido) {
     await fetch(`${API_URL}/pedidos/${idPedido}/recepcion`, { method: 'PUT' });
-    mostrarAlerta('Recepción conforme registrada. Pedido FINALIZADO.');
+    mostrarAlerta('Recepción confirmada satisfactoriamente. Operación finalizada.');
     cargarMisPedidos();
 };
 
@@ -405,7 +407,7 @@ async function cargarEstadoCuenta() {
         tbody.innerHTML += `
             <tr>
                 <td>#${c.idDocumento}</td>
-                <td>#${c.pedido.idPedido}</td>
+                <td>Orden #${c.pedido.idPedido}</td>
                 <td>${c.fechaEmision ? c.fechaEmision.replace('T', ' ').substring(0, 16) : '-'}</td>
                 <td>${formatearCLP(c.subtotalProductos)}</td>
                 <td>${formatearCLP(c.montoEnvio)}</td>
@@ -430,9 +432,9 @@ async function cargarUsuariosEmpresa() {
                 <td>${u.rutUsuario}</td>
                 <td>${u.email}</td>
                 <td><span class="badge badge-info">${u.rol.nombreRol}</span></td>
-                <td><span class="badge ${u.activo ? 'badge-success' : 'badge-danger'}">${u.activo ? 'Activo' : 'Inactivo'}</span></td>
+                <td><span class="badge ${u.activo ? 'badge-success' : 'badge-danger'}">${u.activo ? 'Habilitado' : 'Suspendido'}</span></td>
                 <td>
-                    <button class="btn btn-outline btn-sm" onclick="cambiarEstadoUsuario(${u.idUsuario}, ${!u.activo})">${u.activo ? 'Desactivar' : 'Activar'}</button>
+                    <button class="btn btn-outline btn-sm" onclick="cambiarEstadoUsuario(${u.idUsuario}, ${!u.activo})">${u.activo ? 'Suspender Acceso' : 'Reactivar'}</button>
                 </td>
             </tr>
         `;
@@ -445,10 +447,10 @@ window.crearUsuarioPyme = async function (e) {
     const email = document.getElementById('usu-email').value.trim();
 
     if (typeof validarRutChileno === 'function' && !validarRutChileno(rutUsuario)) {
-        return mostrarAlerta('El RUT ingresado no es válido según el cálculo Módulo 11.', true);
+        return mostrarAlerta('El RUT ingresado no es válido. Verifica el dígito verificador.', true);
     }
     if (typeof validarFormatoCorreo === 'function' && !validarFormatoCorreo(email)) {
-        return mostrarAlerta('Ingresa un correo electrónico válido con @ y dominio (.cl, .com, etc.).', true);
+        return mostrarAlerta('Ingresa un correo corporativo válido con @ y dominio (.cl, .com, etc.).', true);
     }
 
     const payload = {
@@ -467,7 +469,7 @@ window.crearUsuarioPyme = async function (e) {
     const data = await res.json();
     if (!res.ok) return mostrarAlerta(data.error, true);
 
-    mostrarAlerta('Trabajador registrado en la Pyme con éxito.');
+    mostrarAlerta('Colaborador incorporado correctamente a la empresa.');
     document.getElementById('form-nuevo-usuario').reset();
     cargarUsuariosEmpresa();
 };
@@ -490,13 +492,13 @@ async function cargarAuditoria() {
     logs.forEach(l => {
         tbody.innerHTML += `
             <tr>
-                <td><strong>#LOG-${l.idLog}</strong></td>
+                <td><strong>#AUD-${l.idLog}</strong></td>
                 <td>${l.fechaModificacion ? l.fechaModificacion.replace('T', ' ').substring(0, 16) : '-'}</td>
                 <td>${l.producto.sku} — ${l.producto.nombreProducto}</td>
                 <td>${formatearCLP(l.precioAnterior)}</td>
                 <td style="color:#0284c7; font-weight:700;">${formatearCLP(l.precioNuevo)}</td>
-                <td>${l.usuario ? l.usuario.nombreCompleto : 'Sistema PostgreSQL'}</td>
+                <td>${l.usuario ? l.usuario.nombreCompleto : 'Actualización de Sistema'}</td>
             </tr>
-        `;
+        </tr>`;
     });
 }

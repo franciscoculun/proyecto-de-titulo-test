@@ -3,40 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Operativo — AndesB2B</title>
-    <link rel="stylesheet" href="../css/styles.css">
+    <title>Portal de Gestión — AndesB2B</title>
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
     <div id="app-container" class="app-layout">
         <aside class="sidebar">
             <div class="brand">
                 <h2>ANDESB2B</h2>
-                <span>Marketplace B2B para Pymes</span>
+                <span>Plataforma de Comercio Mayorista</span>
             </div>
 
             <nav class="nav-menu">
                 <div class="nav-group">
-                    <span class="nav-title">PRINCIPAL</span>
-                    <button class="nav-link active" onclick="cambiarModulo('dashboard', this)">📊 Panel General</button>
+                    <span class="nav-title">RESUMEN</span>
+                    <button class="nav-link active" onclick="cambiarModulo('dashboard', this)">📊 Inicio y Métricas</button>
                 </div>
 
                 <div id="menu-compras" class="nav-group">
-                    <span class="nav-title">A. MÓDULO DE COMPRAS</span>
-                    <button class="nav-link" onclick="cambiarModulo('explorar', this)">🛒 Explorar catálogo</button>
-                    <button class="nav-link" onclick="cambiarModulo('mis-pedidos', this)">📦 Mis pedidos</button>
+                    <span class="nav-title">ADQUISICIONES</span>
+                    <button class="nav-link" onclick="cambiarModulo('explorar', this)">🛒 Catálogo de Proveedores</button>
+                    <button class="nav-link" onclick="cambiarModulo('mis-pedidos', this)">📦 Órdenes de Compra</button>
                 </div>
 
                 <div id="menu-ventas" class="nav-group">
-                    <span class="nav-title">B. MÓDULO DE VENTAS</span>
-                    <button class="nav-link" onclick="cambiarModulo('gestionar-catalogo', this)">🏷️ Gestionar catálogo</button>
-                    <button class="nav-link" onclick="cambiarModulo('pedidos-recibidos', this)">🚚 Pedidos recibidos</button>
-                    <button class="nav-link" onclick="cambiarModulo('estado-cuenta', this)">💳 Estado de cuenta (3%)</button>
+                    <span class="nav-title">COMERCIALIZACIÓN</span>
+                    <button class="nav-link" onclick="cambiarModulo('gestionar-catalogo', this)">🏷️ Mi Inventario</button>
+                    <button class="nav-link" onclick="cambiarModulo('pedidos-recibidos', this)">🚚 Solicitudes y Despachos</button>
+                    <button class="nav-link" onclick="cambiarModulo('estado-cuenta', this)">💳 Liquidaciones y Cobros</button>
                 </div>
 
                 <div id="menu-admin" class="nav-group">
-                    <span class="nav-title">C. ADMINISTRACIÓN</span>
-                    <button class="nav-link" onclick="cambiarModulo('usuarios', this)">👥 Gestionar usuarios</button>
-                    <button class="nav-link" onclick="cambiarModulo('auditoria', this)">🔒 Auditoría de precios</button>
+                    <span class="nav-title">CONFIGURACIÓN</span>
+                    <button class="nav-link" onclick="cambiarModulo('usuarios', this)">👥 Equipo y Permisos</button>
+                    <button class="nav-link" onclick="cambiarModulo('auditoria', this)">🔒 Historial de Precios</button>
                 </div>
             </nav>
 
@@ -50,8 +50,8 @@
 
         <main class="main-content">
             <header class="topbar">
-                <h2 id="titulo-modulo">Panel General › Resumen Operativo y Financiero</h2>
-                <div class="comision-pill">Comisión Mes Acumulada (3%): <strong id="top-comision">$0 CLP</strong></div>
+                <h2 id="titulo-modulo">Resumen Operativo y Financiero</h2>
+                <div class="comision-pill">Comisión Acumulada del Período (3%): <strong id="top-comision">$0 CLP</strong></div>
             </header>
 
             <div id="app-alert" class="alert hidden"></div>
@@ -60,23 +60,23 @@
             <section id="mod-dashboard" class="modulo">
                 <div class="kpi-grid">
                     <div class="card kpi-card">
-                        <span class="kpi-label">VENTAS CONFIRMADAS</span>
+                        <span class="kpi-label">VENTAS CONFIRMADAS DEL MES</span>
                         <h3 id="kpi-ventas">$0 CLP</h3>
-                        <small class="text-success">Operaciones liquidadas en Documentos_Cobro</small>
+                        <small class="text-success">Monto neto en insumos comercializados</small>
                     </div>
                     <div class="card kpi-card">
-                        <span class="kpi-label">OPERACIONES EN CURSO</span>
+                        <span class="kpi-label">OPERACIONES REGISTRADAS</span>
                         <h3 id="kpi-pedidos">0 Pedidos</h3>
-                        <small>Flujo B2B de compras y ventas</small>
+                        <small>Órdenes de compra y venta gestionadas</small>
                     </div>
                     <div class="card kpi-card kpi-danger">
-                        <span class="kpi-label">COMISIÓN ACUMULADA (3%)</span>
+                        <span class="kpi-label">CARGO POR SERVICIO (3%)</span>
                         <h3 id="kpi-comision">$0 CLP</h3>
-                        <small>Exenta sobre costos de envío</small>
+                        <small>Calculado solo sobre productos (envío exento)</small>
                     </div>
                 </div>
                 <div class="card">
-                    <h3>Datos Corporativos de la Pyme Conectada</h3>
+                    <h3>Ficha Comercial de tu Empresa</h3>
                     <p id="resumen-empresa-datos"></p>
                 </div>
             </section>
@@ -85,33 +85,33 @@
             <section id="mod-explorar" class="modulo hidden">
                 <div class="card">
                     <div class="filter-bar">
-                        <input type="text" id="filtro-texto" placeholder="Buscar insumo o SKU..." oninput="renderizarCatalogo()">
+                        <input type="text" id="filtro-texto" placeholder="Buscar por nombre del insumo o código SKU..." oninput="renderizarCatalogo()">
                         <select id="filtro-categoria" onchange="renderizarCatalogo()">
-                            <option value="">Todas las categorías</option>
+                            <option value="">Todos los rubros industriales</option>
                         </select>
                     </div>
                     <div id="grid-catalogo" class="product-grid"></div>
                 </div>
 
                 <div id="card-solicitar-pedido" class="card hidden">
-                    <h3>Emitir Solicitud de Pedido B2B (Estado inicial: COTIZANDO_ENVIO)</h3>
+                    <h3>Nueva Solicitud de Cotización de Despacho</h3>
                     <form id="form-crear-pedido" onsubmit="emitirPedido(event)">
                         <input type="hidden" id="ped-id-producto">
                         <div class="form-grid-3">
                             <div>
-                                <label>Producto Seleccionado</label>
+                                <label>Insumo Seleccionado</label>
                                 <input type="text" id="ped-nombre-prod" readonly>
                             </div>
                             <div>
-                                <label>Precio Unitario Fijo ($ CLP)</label>
+                                <label>Valor Unitario Neto ($ CLP)</label>
                                 <input type="text" id="ped-precio-fijo" readonly>
                             </div>
                             <div>
-                                <label>Cantidad a Solicitar</label>
+                                <label>Unidades Requeridas</label>
                                 <input type="number" id="ped-cantidad" min="1" required>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-primary">Confirmar Solicitud de Cotización</button>
+                        <button type="submit" class="btn btn-primary">Enviar Solicitud al Proveedor</button>
                         <button type="button" class="btn btn-outline" onclick="document.getElementById('card-solicitar-pedido').classList.add('hidden')">Cancelar</button>
                     </form>
                 </div>
@@ -120,19 +120,19 @@
             <!-- A2. MIS PEDIDOS -->
             <section id="mod-mis-pedidos" class="modulo hidden">
                 <div class="card">
-                    <h3>Listado de Órdenes de Compra Emitidas (Mis Pedidos)</h3>
+                    <h3>Seguimiento de Órdenes de Compra Emitidas</h3>
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
+                                    <th>N° ORDEN</th>
                                     <th>PROVEEDOR</th>
-                                    <th>PRODUCTO Y CANT.</th>
-                                    <th>TRANSPORTE</th>
-                                    <th>SUBTOTAL + ENVÍO</th>
-                                    <th>SEGUIMIENTO</th>
-                                    <th>ESTADO</th>
-                                    <th>ACCIONES</th>
+                                    <th>DETALLE DE INSUMOS</th>
+                                    <th>EMPRESA DE TRANSPORTE</th>
+                                    <th>PRODUCTOS + DESPACHO</th>
+                                    <th>N° SEGUIMIENTO</th>
+                                    <th>ESTADO ACTUAL</th>
+                                    <th>ACCIÓN DISPONIBLE</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-mis-pedidos"></tbody>
@@ -144,56 +144,56 @@
             <!-- B1. GESTIONAR CATÁLOGO -->
             <section id="mod-gestionar-catalogo" class="modulo hidden">
                 <div class="card">
-                    <h3>Publicar o Editar Producto en Catálogo</h3>
+                    <h3>Publicar o Actualizar Insumo en Catálogo</h3>
                     <form id="form-producto" onsubmit="guardarProducto(event)">
                         <input type="hidden" id="prod-id">
                         <div class="form-grid-3">
                             <div>
-                                <label>Código SKU (Único)</label>
-                                <input type="text" id="prod-sku" required placeholder="SKU-401">
+                                <label>Código SKU</label>
+                                <input type="text" id="prod-sku" required placeholder="Ej: SKU-401">
                             </div>
                             <div>
-                                <label>Nombre del Producto</label>
-                                <input type="text" id="prod-nombre" required placeholder="Soldadora Inverter 200A">
+                                <label>Nombre Comercial del Producto</label>
+                                <input type="text" id="prod-nombre" required placeholder="Ej: Soldadora Inverter 200A">
                             </div>
                             <div>
-                                <label>Categoría Industrial</label>
+                                <label>Rubro o Categoría</label>
                                 <select id="prod-categoria" required></select>
                             </div>
                             <div>
                                 <label>Precio Unitario Neto ($ CLP)</label>
-                                <input type="number" id="prod-precio" min="0" step="1" required placeholder="145000">
+                                <input type="number" id="prod-precio" min="0" step="1" required placeholder="Ej: 145000">
                             </div>
                             <div>
-                                <label>Stock Disponible</label>
-                                <input type="number" id="prod-stock" min="0" required placeholder="50">
+                                <label>Unidades en Stock</label>
+                                <input type="number" id="prod-stock" min="0" required placeholder="Ej: 50">
                             </div>
                             <div>
-                                <label>Estado de Publicación</label>
+                                <label>Disponibilidad en el Portal</label>
                                 <select id="prod-visible">
-                                    <option value="false">Borrador (No visible)</option>
-                                    <option value="true">Visible en Catálogo</option>
+                                    <option value="false">Guardar como Borrador (Oculto)</option>
+                                    <option value="true">Publicado en Catálogo</option>
                                 </select>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-success">Guardar Producto</button>
-                        <button type="button" class="btn btn-outline" onclick="limpiarFormProducto()">Limpiar Formulario</button>
+                        <button type="submit" class="btn btn-success">Guardar Cambios</button>
+                        <button type="button" class="btn btn-outline" onclick="limpiarFormProducto()">Nuevo Producto</button>
                     </form>
                 </div>
 
                 <div class="card">
-                    <h3>Inventario Publicado por la Pyme</h3>
+                    <h3>Catálogo de Productos de tu Empresa</h3>
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
                                     <th>SKU</th>
-                                    <th>PRODUCTO</th>
-                                    <th>CATEGORÍA</th>
+                                    <th>DESCRIPCIÓN DEL PRODUCTO</th>
+                                    <th>RUBRO</th>
                                     <th>PRECIO UNITARIO</th>
-                                    <th>STOCK</th>
-                                    <th>VISIBLE</th>
-                                    <th>ACCIÓN</th>
+                                    <th>STOCK DISPONIBLE</th>
+                                    <th>PUBLICACIÓN</th>
+                                    <th>OPCIONES</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-mi-catalogo"></tbody>
@@ -205,19 +205,19 @@
             <!-- B2. PEDIDOS RECIBIDOS -->
             <section id="mod-pedidos-recibidos" class="modulo hidden">
                 <div class="card">
-                    <h3>Listado de Pedidos Recibidos de Pymes Compradoras</h3>
+                    <h3>Solicitudes de Compra Recibidas de Clientes</h3>
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>PEDIDO</th>
-                                    <th>PYME COMPRADORA</th>
-                                    <th>PRODUCTO Y CANT.</th>
-                                    <th>SUBTOTAL</th>
-                                    <th>ENVÍO</th>
+                                    <th>N° ORDEN</th>
+                                    <th>EMPRESA CLIENTE</th>
+                                    <th>INSUMO Y CANTIDAD</th>
+                                    <th>MONTO PRODUCTOS</th>
+                                    <th>COSTO DESPACHO</th>
                                     <th>ESTADO</th>
-                                    <th>SEGUIMIENTO</th>
-                                    <th>GESTIÓN</th>
+                                    <th>CÓDIGO TRACKING</th>
+                                    <th>OPERACIÓN</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-pedidos-recibidos"></tbody>
@@ -226,24 +226,24 @@
                 </div>
 
                 <div id="card-cotizar-envio" class="card hidden">
-                    <h3>Gestión del Pedido #<span id="cot-id-label"></span> — Cotización de Despacho y Simulador 3%</h3>
+                    <h3>Valorización de Despacho — Orden #<span id="cot-id-label"></span></h3>
                     <form id="form-cotizar" onsubmit="enviarCotizacion(event)">
                         <input type="hidden" id="cot-id-pedido">
                         <div class="form-grid-3">
                             <div>
-                                <label>1. Medio de Transporte</label>
-                                <input type="text" id="cot-transporte" required placeholder="Starken Cargo Empresas">
+                                <label>Empresa Transportista</label>
+                                <input type="text" id="cot-transporte" required placeholder="Ej: Starken Cargo / Blue Express">
                             </div>
                             <div>
-                                <label>2. Costo de Envío ($ CLP)</label>
+                                <label>Tarifa de Despacho ($ CLP)</label>
                                 <input type="number" id="cot-costo" min="0" required oninput="actualizarSimulador()">
                             </div>
                             <div>
-                                <label>Simulación Financiera (Comisión 3% s/prod.)</label>
+                                <label>Proyección de Liquidación</label>
                                 <div id="simulador-resumen" class="simulador-box"></div>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-primary">Enviar Cotización al Comprador</button>
+                        <button type="submit" class="btn btn-primary">Enviar Propuesta de Despacho al Cliente</button>
                     </form>
                 </div>
             </section>
@@ -251,19 +251,19 @@
             <!-- B3. ESTADO DE CUENTA -->
             <section id="mod-estado-cuenta" class="modulo hidden">
                 <div class="card">
-                    <h3>Detalle de Transacciones Confirmadas y Retención de Comisión (3%)</h3>
+                    <h3>Estado de Cuenta y Liquidaciones por Ventas Confirmadas</h3>
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID DOC</th>
-                                    <th>PEDIDO</th>
-                                    <th>FECHA EMISIÓN</th>
-                                    <th>SUBTOTAL PROD.</th>
-                                    <th>MONTO ENVÍO (EXENTO)</th>
-                                    <th>COMISIÓN ANDESB2B (3%)</th>
-                                    <th>TOTAL OPERACIÓN</th>
-                                    <th>ESTADO COBRO</th>
+                                    <th>N° DOC</th>
+                                    <th>ORDEN ASOCIADA</th>
+                                    <th>FECHA DE EMISIÓN</th>
+                                    <th>VENTA PRODUCTOS</th>
+                                    <th>TRASLADO (EXENTO)</th>
+                                    <th>COMISIÓN PORTAL (3%)</th>
+                                    <th>TOTAL FACTURADO</th>
+                                    <th>ESTADO DE LIQUIDACIÓN</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-estado-cuenta"></tbody>
@@ -275,27 +275,27 @@
             <!-- C1. GESTIÓN DE USUARIOS -->
             <section id="mod-usuarios" class="modulo hidden">
                 <div class="card">
-                    <h3>Añadir Colaborador Autorizado en la Pyme</h3>
+                    <h3>Incorporar Colaborador al Equipo de la Empresa</h3>
                     <form id="form-nuevo-usuario" onsubmit="crearUsuarioPyme(event)" novalidate>
                         <div class="form-grid-3">
                             <div>
-                                <label>Nombre Completo</label>
-                                <input type="text" id="usu-nombre" required placeholder="Juan Pérez">
+                                <label>Nombre y Apellidos</label>
+                                <input type="text" id="usu-nombre" required placeholder="Ej: Juan Pérez">
                             </div>
                             <div>
-                                <label>RUT Persona (Módulo 11)</label>
-                                <input type="text" id="usu-rut" required placeholder="14.444.444-4" oninput="formatearInputRut(this)">
+                                <label>RUT del Colaborador</label>
+                                <input type="text" id="usu-rut" required placeholder="Ej: 14.444.444-4" oninput="formatearInputRut(this)">
                             </div>
                             <div>
-                                <label>Correo Corporativo (@dominio.cl / .com)</label>
-                                <input type="email" id="usu-email" required placeholder="jperez@empresa.cl">
+                                <label>Correo Corporativo</label>
+                                <input type="email" id="usu-email" required placeholder="jperez@tuempresa.cl">
                             </div>
                             <div>
-                                <label>Rol Operativo (RBAC)</label>
+                                <label>Perfil de Acceso</label>
                                 <select id="usu-rol" required>
-                                    <option value="Comprador">Comprador</option>
-                                    <option value="Vendedor">Vendedor</option>
-                                    <option value="Administrador">Administrador</option>
+                                    <option value="Comprador">Comprador (Adquisiciones)</option>
+                                    <option value="Vendedor">Vendedor (Catálogo y Ventas)</option>
+                                    <option value="Administrador">Administrador (Control Total)</option>
                                 </select>
                             </div>
                             <div>
@@ -303,24 +303,24 @@
                                 <input type="password" id="usu-pass" required value="Andes2026!">
                             </div>
                             <div style="display:flex; align-items:flex-end;">
-                                <button type="submit" class="btn btn-success full-width">+ Añadir Usuario</button>
+                                <button type="submit" class="btn btn-success full-width">Guardar Colaborador</button>
                             </div>
                         </div>
                     </form>
                 </div>
 
                 <div class="card">
-                    <h3>Nómina de Usuarios de la Empresa</h3>
+                    <h3>Nómina de Usuarios Autorizados</h3>
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>NOMBRE</th>
-                                    <th>RUT PERSONA</th>
-                                    <th>CORREO ELECTRÓNICO</th>
-                                    <th>ROL ASIGNADO</th>
-                                    <th>ESTADO</th>
-                                    <th>CAMBIAR ESTADO</th>
+                                    <th>COLABORADOR</th>
+                                    <th>RUT</th>
+                                    <th>CORREO CORPORATIVO</th>
+                                    <th>PERFIL ASIGNADO</th>
+                                    <th>ESTADO DE CUENTA</th>
+                                    <th>GESTIÓN DE ACCESO</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-usuarios"></tbody>
@@ -333,19 +333,19 @@
             <section id="mod-auditoria" class="modulo hidden">
                 <div class="card">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <h3>Registro Histórico de Cambios de Precios (Log_Auditoria_Precios)</h3>
-                        <span class="badge badge-success">Solo Lectura (Trigger SQL)</span>
+                        <h3>Historial de Trazabilidad y Modificaciones de Precios</h3>
+                        <span class="badge badge-success">Registro Automático Inmutable</span>
                     </div>
                     <div class="table-responsive">
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID LOG</th>
-                                    <th>FECHA MODIFICACIÓN</th>
-                                    <th>PRODUCTO / SKU</th>
-                                    <th>PRECIO ANTERIOR</th>
-                                    <th>PRECIO NUEVO</th>
-                                    <th>USUARIO RESPONSABLE</th>
+                                    <th>FOLIO</th>
+                                    <th>FECHA Y HORA</th>
+                                    <th>INSUMO MODIFICADO</th>
+                                    <th>VALOR ANTERIOR</th>
+                                    <th>NUEVO VALOR</th>
+                                    <th>AUTOR DEL CAMBIO</th>
                                 </tr>
                             </thead>
                             <tbody id="tabla-auditoria"></tbody>
@@ -356,7 +356,7 @@
         </main>
     </div>
 
-    <script src="../js/validaciones.js"></script>
-    <script src="../js/app.js"></script>
+    <script src="/js/validaciones.js"></script>
+    <script src="/js/app.js"></script>
 </body>
 </html>
