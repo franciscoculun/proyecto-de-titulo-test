@@ -3,18 +3,17 @@ let usuarioActual = null;
 let catalogoGlobal = [];
 let subtotalCotizacionActual = 0;
 
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener('DOMContentLoaded', async () => {
     try {
-        const guardado = sessionStorage.getItem('usuarioAndesB2B');
-        if (!guardado) {
+        const res = await fetch(`${API_URL}/auth/me`, { credentials: 'same-origin' });
+        if (!res.ok) {
             window.location.href = '/index.html';
             return;
         }
-        usuarioActual = JSON.parse(guardado);
+        usuarioActual = await res.json();
         configurarInterfazPorRol();
     } catch (err) {
-        console.error('Error al inicializar sesión:', err);
-        sessionStorage.removeItem('usuarioAndesB2B');
+        console.error('Error al verificar sesión:', err);
         window.location.href = '/index.html';
     }
 });
@@ -33,7 +32,7 @@ function formatearCLP(valor) {
 }
 
 function configurarInterfazPorRol() {
-    const rol = (usuarioActual.rol && usuarioActual.rol.nombreRol) ? usuarioActual.rol.nombreRol : 'Comprador';
+    const rol = usuarioActual.rol || 'Comprador';
     const emp = usuarioActual.empresa || {};
 
     document.getElementById('info-empresa').textContent = emp.razonSocial || 'Empresa';
@@ -48,8 +47,8 @@ function configurarInterfazPorRol() {
     cargarDashboard();
 }
 
-window.cerrarSesion = function () {
-    sessionStorage.removeItem('usuarioAndesB2B');
+window.cerrarSesion = async function () {
+    await fetch(`${API_URL}/auth/logout`, { method: 'POST', credentials: 'same-origin' });
     window.location.href = '/index.html';
 };
 
@@ -89,14 +88,13 @@ window.cambiarModulo = function (modulo, btnElement) {
 async function cargarDashboard() {
     try {
         const emp = usuarioActual.empresa || {};
-        const idEmp = emp.idEmpresa;
         document.getElementById('resumen-empresa-datos').textContent =
             `${emp.razonSocial || '-'} | RUT: ${emp.rutEmpresa || '-'} | Giro: ${emp.giro || '-'} | Casa Matriz: ${emp.direccion || '-'} (${emp.region || '-'})`;
 
         const [resCobros, resCompras, resVentas] = await Promise.all([
-            fetch(`${API_URL}/pedidos/estado-cuenta/${idEmp}`),
-            fetch(`${API_URL}/pedidos/compras/${idEmp}`),
-            fetch(`${API_URL}/pedidos/ventas/${idEmp}`)
+            fetch(`${API_URL}/pedidos/mi-estado-cuenta`),
+            fetch(`${API_URL}/pedidos/mis-compras`),
+            fetch(`${API_URL}/pedidos/mis-ventas`)
         ]);
         const cobros = resCobros.ok ? await resCobros.json() : [];
         const compras = resCompras.ok ? await resCompras.json() : [];
@@ -173,7 +171,6 @@ window.prepararSolicitud = function (idProd, nombre, precio) {
 window.emitirPedido = async function (e) {
     e.preventDefault();
     const payload = {
-        idUsuarioComprador: usuarioActual.idUsuario,
         idProducto: document.getElementById('ped-id-producto').value,
         cantidad: document.getElementById('ped-cantidad').value
     };
@@ -191,7 +188,7 @@ window.emitirPedido = async function (e) {
 };
 
 async function cargarMiCatalogo() {
-    const res = await fetch(`${API_URL}/catalogo/empresa/${usuarioActual.empresa.idEmpresa}`);
+    const res = await fetch(`${API_URL}/catalogo/mi-inventario`);
     const productos = res.ok ? await res.json() : [];
     const tbody = document.getElementById('tabla-mi-catalogo');
     tbody.innerHTML = '';
@@ -233,14 +230,12 @@ window.guardarProducto = async function (e) {
     e.preventDefault();
     const idProd = document.getElementById('prod-id').value;
     const payload = {
-        idEmpresaVendedora: usuarioActual.empresa.idEmpresa,
         idCategoria: document.getElementById('prod-categoria').value,
         sku: document.getElementById('prod-sku').value.trim(),
         nombreProducto: document.getElementById('prod-nombre').value.trim(),
         precioUnitario: document.getElementById('prod-precio').value,
         stockDisponible: document.getElementById('prod-stock').value,
-        visible: document.getElementById('prod-visible').value === 'true',
-        idUsuario: usuarioActual.idUsuario
+        visible: document.getElementById('prod-visible').value === 'true'
     };
 
     const url = idProd ? `${API_URL}/catalogo/productos/${idProd}` : `${API_URL}/catalogo/productos`;
@@ -260,15 +255,14 @@ window.guardarProducto = async function (e) {
 };
 
 async function cargarMisPedidos() {
-    const res = await fetch(`${API_URL}/pedidos/compras/${usuarioActual.empresa.idEmpresa}`);
+    const res = await fetch(`${API_URL}/pedidos/mis-compras`);
     const lista = res.ok ? await res.json() : [];
     const tbody = document.getElementById('tabla-mis-pedidos');
     tbody.innerHTML = '';
 
-    lista.forEach(item => {
-        const p = item.pedido;
-        const det = item.detalles[0] || {};
-        const prodTexto = det.producto ? `${det.producto.nombreProducto} (${det.cantidad} un.)` : '-';
+    lista.forEach(p => {
+        const det = (p.detalles && p.detalles[0]) ? p.detalles[0] : {};
+        const prodTexto = det.nombreProducto ? `${det.nombreProducto} (${det.cantidad} un.)` : '-';
         let acciones = '<span class="text-muted">En espera</span>';
 
         if (p.estadoPedido === 'COTIZANDO_ENVIO' && p.medioTransporte) {
@@ -288,7 +282,7 @@ async function cargarMisPedidos() {
                 <td>${p.empresaVendedora.razonSocial}</td>
                 <td>${prodTexto}</td>
                 <td>${p.medioTransporte || 'Pendiente de cotizar'}</td>
-                <td>${formatearCLP(item.subtotalProductos)} + ${formatearCLP(p.costoEnvio)}</td>
+                <td>${formatearCLP(p.subtotalProductos)} + ${formatearCLP(p.costoEnvio)}</td>
                 <td>${p.codigoSeguimiento || '-'}</td>
                 <td><span class="badge badge-info">${p.estadoPedido}</span></td>
                 <td>${acciones}</td>
@@ -298,19 +292,18 @@ async function cargarMisPedidos() {
 }
 
 async function cargarPedidosRecibidos() {
-    const res = await fetch(`${API_URL}/pedidos/ventas/${usuarioActual.empresa.idEmpresa}`);
+    const res = await fetch(`${API_URL}/pedidos/mis-ventas`);
     const lista = res.ok ? await res.json() : [];
     const tbody = document.getElementById('tabla-pedidos-recibidos');
     tbody.innerHTML = '';
 
-    lista.forEach(item => {
-        const p = item.pedido;
-        const det = item.detalles[0] || {};
-        const prodTexto = det.producto ? `${det.producto.nombreProducto} (${det.cantidad} un.)` : '-';
+    lista.forEach(p => {
+        const det = (p.detalles && p.detalles[0]) ? p.detalles[0] : {};
+        const prodTexto = det.nombreProducto ? `${det.nombreProducto} (${det.cantidad} un.)` : '-';
         let boton = '<span class="text-muted">Sin acciones pendientes</span>';
 
         if (p.estadoPedido === 'COTIZANDO_ENVIO') {
-            boton = `<button class="btn btn-primary btn-sm" onclick="abrirCotizador(${p.idPedido}, ${item.subtotalProductos})">Valorizar Despacho</button>`;
+            boton = `<button class="btn btn-primary btn-sm" onclick="abrirCotizador(${p.idPedido}, ${p.subtotalProductos})">Valorizar Despacho</button>`;
         } else if (p.estadoPedido === 'COMPRA_CONFIRMADA') {
             boton = `<button class="btn btn-success btn-sm" onclick="ingresarTracking(${p.idPedido})">Informar Despacho</button>`;
         }
@@ -320,7 +313,7 @@ async function cargarPedidosRecibidos() {
                 <td><strong>#${p.idPedido}</strong></td>
                 <td>${p.empresaCompradora.razonSocial}</td>
                 <td>${prodTexto}</td>
-                <td>${formatearCLP(item.subtotalProductos)}</td>
+                <td>${formatearCLP(p.subtotalProductos)}</td>
                 <td>${formatearCLP(p.costoEnvio)}</td>
                 <td><span class="badge badge-warn">${p.estadoPedido}</span></td>
                 <td>${p.codigoSeguimiento || 'Sin asignar'}</td>
@@ -359,11 +352,12 @@ window.enviarCotizacion = async function (e) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
     });
-    if (res.ok) {
-        mostrarAlerta('Propuesta de despacho enviada al comprador.');
-        document.getElementById('card-cotizar-envio').classList.add('hidden');
-        cargarPedidosRecibidos();
-    }
+    const data = await res.json();
+    if (!res.ok) return mostrarAlerta(data.error, true);
+
+    mostrarAlerta('Propuesta de despacho enviada al comprador.');
+    document.getElementById('card-cotizar-envio').classList.add('hidden');
+    cargarPedidosRecibidos();
 };
 
 window.responderCotizacion = async function (idPedido, aprobar) {
@@ -382,23 +376,29 @@ window.responderCotizacion = async function (idPedido, aprobar) {
 window.ingresarTracking = async function (idPedido) {
     const codigo = prompt('Ingresa el número de orden de transporte o seguimiento (ej: STK-994821):', 'STK-994821');
     if (!codigo) return;
-    await fetch(`${API_URL}/pedidos/${idPedido}/seguimiento`, {
+    const res = await fetch(`${API_URL}/pedidos/${idPedido}/seguimiento`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ codigoSeguimiento: codigo })
     });
+    const data = await res.json();
+    if (!res.ok) return mostrarAlerta(data.error, true);
+
     mostrarAlerta('Despacho informado. La orden pasó a estado EN_TRANSITO.');
     cargarPedidosRecibidos();
 };
 
 window.confirmarRecepcion = async function (idPedido) {
-    await fetch(`${API_URL}/pedidos/${idPedido}/recepcion`, { method: 'PUT' });
+    const res = await fetch(`${API_URL}/pedidos/${idPedido}/recepcion`, { method: 'PUT' });
+    const data = await res.json();
+    if (!res.ok) return mostrarAlerta(data.error, true);
+
     mostrarAlerta('Recepción confirmada satisfactoriamente. Operación finalizada.');
     cargarMisPedidos();
 };
 
 async function cargarEstadoCuenta() {
-    const res = await fetch(`${API_URL}/pedidos/estado-cuenta/${usuarioActual.empresa.idEmpresa}`);
+    const res = await fetch(`${API_URL}/pedidos/mi-estado-cuenta`);
     const cobros = res.ok ? await res.json() : [];
     const tbody = document.getElementById('tabla-estado-cuenta');
     tbody.innerHTML = '';
@@ -407,7 +407,7 @@ async function cargarEstadoCuenta() {
         tbody.innerHTML += `
             <tr>
                 <td>#${c.idDocumento}</td>
-                <td>Orden #${c.pedido.idPedido}</td>
+                <td>Orden #${c.idPedido}</td>
                 <td>${c.fechaEmision ? c.fechaEmision.replace('T', ' ').substring(0, 16) : '-'}</td>
                 <td>${formatearCLP(c.subtotalProductos)}</td>
                 <td>${formatearCLP(c.montoEnvio)}</td>
@@ -420,7 +420,7 @@ async function cargarEstadoCuenta() {
 }
 
 async function cargarUsuariosEmpresa() {
-    const res = await fetch(`${API_URL}/usuarios/empresa/${usuarioActual.empresa.idEmpresa}`);
+    const res = await fetch(`${API_URL}/usuarios/mi-empresa`);
     const usuarios = res.ok ? await res.json() : [];
     const tbody = document.getElementById('tabla-usuarios');
     tbody.innerHTML = '';
@@ -431,7 +431,7 @@ async function cargarUsuariosEmpresa() {
                 <td><strong>${u.nombreCompleto}</strong></td>
                 <td>${u.rutUsuario}</td>
                 <td>${u.email}</td>
-                <td><span class="badge badge-info">${u.rol.nombreRol}</span></td>
+                <td><span class="badge badge-info">${u.rol}</span></td>
                 <td><span class="badge ${u.activo ? 'badge-success' : 'badge-danger'}">${u.activo ? 'Habilitado' : 'Suspendido'}</span></td>
                 <td>
                     <button class="btn btn-outline btn-sm" onclick="cambiarEstadoUsuario(${u.idUsuario}, ${!u.activo})">${u.activo ? 'Suspender Acceso' : 'Reactivar'}</button>
@@ -454,7 +454,6 @@ window.crearUsuarioPyme = async function (e) {
     }
 
     const payload = {
-        idEmpresa: String(usuarioActual.empresa.idEmpresa),
         nombreCompleto: document.getElementById('usu-nombre').value.trim(),
         rutUsuario,
         email,
@@ -475,11 +474,15 @@ window.crearUsuarioPyme = async function (e) {
 };
 
 window.cambiarEstadoUsuario = async function (idUsuario, nuevoEstado) {
-    await fetch(`${API_URL}/usuarios/${idUsuario}`, {
+    const res = await fetch(`${API_URL}/usuarios/${idUsuario}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ activo: nuevoEstado })
     });
+    if (!res.ok) {
+        const data = await res.json();
+        return mostrarAlerta(data.error, true);
+    }
     cargarUsuariosEmpresa();
 };
 
@@ -494,11 +497,11 @@ async function cargarAuditoria() {
             <tr>
                 <td><strong>#AUD-${l.idLog}</strong></td>
                 <td>${l.fechaModificacion ? l.fechaModificacion.replace('T', ' ').substring(0, 16) : '-'}</td>
-                <td>${l.producto.sku} — ${l.producto.nombreProducto}</td>
+                <td>${l.sku} — ${l.nombreProducto}</td>
                 <td>${formatearCLP(l.precioAnterior)}</td>
                 <td style="color:#0284c7; font-weight:700;">${formatearCLP(l.precioNuevo)}</td>
-                <td>${l.usuario ? l.usuario.nombreCompleto : 'Actualización de Sistema'}</td>
+                <td>${l.nombreUsuario}</td>
             </tr>
-        </tr>`;
+        `;
     });
 }
