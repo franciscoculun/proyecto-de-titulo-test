@@ -97,9 +97,14 @@ async function solicitarToken(e) {
     const data = await res.json();
     if (!res.ok) return mostrarAlertaPublica(data.error, true);
 
-    document.getElementById('rec-token').value = data.tokenDemo;
     document.getElementById('form-restablecer').classList.remove('hidden');
-    mostrarAlertaPublica(`Código de verificación generado: ${data.tokenDemo}`, false);
+    if (data.tokenDemo) {
+        document.getElementById('rec-token').value = data.tokenDemo;
+        mostrarAlertaPublica(`${data.mensaje} (Modo Demo: ${data.tokenDemo})`, false);
+    } else {
+        document.getElementById('rec-token').value = '';
+        mostrarAlertaPublica(data.mensaje, false);
+    }
 }
 
 async function confirmarRestablecimiento(e) {

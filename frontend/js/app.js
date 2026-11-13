@@ -217,13 +217,19 @@ window.cargarProductoEnForm = function (p) {
     document.getElementById('prod-categoria').value = p.categoria.idCategoria;
     document.getElementById('prod-precio').value = p.precioUnitario;
     document.getElementById('prod-stock').value = p.stockDisponible;
+    document.getElementById('prod-stock').disabled = false;
     document.getElementById('prod-visible').value = String(p.visible);
+    document.getElementById('prod-visible').disabled = false;
 };
 
 window.limpiarFormProducto = function () {
     document.getElementById('form-producto').reset();
     document.getElementById('prod-id').value = '';
     document.getElementById('prod-sku').readOnly = false;
+    document.getElementById('prod-stock').value = 0;
+    document.getElementById('prod-stock').disabled = true;
+    document.getElementById('prod-visible').value = 'false';
+    document.getElementById('prod-visible').disabled = true;
 };
 
 window.guardarProducto = async function (e) {
@@ -233,10 +239,13 @@ window.guardarProducto = async function (e) {
         idCategoria: document.getElementById('prod-categoria').value,
         sku: document.getElementById('prod-sku').value.trim(),
         nombreProducto: document.getElementById('prod-nombre').value.trim(),
-        precioUnitario: document.getElementById('prod-precio').value,
-        stockDisponible: document.getElementById('prod-stock').value,
-        visible: document.getElementById('prod-visible').value === 'true'
+        precioUnitario: document.getElementById('prod-precio').value
     };
+
+    if (idProd) {
+        payload.stockDisponible = document.getElementById('prod-stock').value;
+        payload.visible = document.getElementById('prod-visible').value === 'true';
+    }
 
     const url = idProd ? `${API_URL}/catalogo/productos/${idProd}` : `${API_URL}/catalogo/productos`;
     const metodo = idProd ? 'PUT' : 'POST';
@@ -249,7 +258,7 @@ window.guardarProducto = async function (e) {
     const data = await res.json();
     if (!res.ok) return mostrarAlerta(data.error, true);
 
-    mostrarAlerta(idProd ? 'Insumo actualizado en el catálogo.' : 'Nuevo insumo registrado con éxito.');
+    mostrarAlerta(idProd ? 'Insumo actualizado en el catálogo.' : 'Insumo creado en estado Borrador con stock 0. Selecciónalo en la tabla para asignarle stock y publicarlo.');
     window.limpiarFormProducto();
     cargarMiCatalogo();
 };

@@ -77,9 +77,8 @@ public class CatalogoService {
                 .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada."));
 
         BigDecimal precio = new BigDecimal(datos.get("precioUnitario").toString());
-        Integer stock = Integer.valueOf(datos.get("stockDisponible").toString());
-        if (precio.compareTo(BigDecimal.ZERO) < 0 || stock < 0) {
-            throw new IllegalArgumentException("El precio y el stock no pueden ser negativos.");
+        if (precio.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("El precio unitario no puede ser negativo.");
         }
 
         Producto p = new Producto();
@@ -88,8 +87,9 @@ public class CatalogoService {
         p.setSku(sku);
         p.setNombreProducto(datos.get("nombreProducto").toString().trim());
         p.setPrecioUnitario(precio);
-        p.setStockDisponible(stock);
-        p.setVisible(Boolean.valueOf(datos.getOrDefault("visible", "false").toString()));
+        // Regla de negocio: todo producto nuevo nace como borrador (visible=false) y con stock inicial 0
+        p.setStockDisponible(0);
+        p.setVisible(false);
 
         return ProductoDto.from(productoRepo.save(p));
     }
@@ -105,10 +105,11 @@ public class CatalogoService {
             throw new IllegalArgumentException("No puedes modificar productos pertenecientes a otra empresa.");
         }
 
-        // Configurar variable de sesión local en PostgreSQL para el trigger fn_auditar_precio()
-        entityManager.createNativeQuery("SELECT set_config('app.id_usuario', :uid, true)")
-                .setParameter("uid", String.valueOf(sesion.idUsuario()))
-                .getSingleResult();
+        if ( entityManager != null ) {
+            entityManager.createNativeQuery("SELECT set_config('app.id_usuario', :uid, true)")
+                    .setParameter("uid", String.valueOf(sesion.idUsuario()))
+                    .getSingleResult();
+        }
 
         if (datos.containsKey("nombreProducto")) {
             p.setNombreProducto(datos.get("nombreProducto").toString().trim());

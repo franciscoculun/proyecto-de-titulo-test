@@ -150,4 +150,36 @@ class Andesb2bApplicationTests {
                 pedidoService.crearPedido(sesionAdmin, Map.of("idProducto", 10, "cantidad", 5))
         );
     }
+
+	@Test
+    void productoNuevoNaceComoBorradorYStockCeroAunqueClienteEnvieOtrosValores() {
+        CategoriaRepository catRepo = mock(CategoriaRepository.class);
+        LogAuditoriaPrecioRepository logRepo = mock(LogAuditoriaPrecioRepository.class);
+        cl.iplacex.andesb2b.service.CatalogoService catalogoService =
+                new cl.iplacex.andesb2b.service.CatalogoService(productoRepo, catRepo, empresaRepo, logRepo);
+
+        Empresa emp = new Empresa();
+        emp.setIdEmpresa(1);
+        Categoria cat = new Categoria();
+        cat.setIdCategoria(1);
+
+        when(productoRepo.existsBySku("SKU-999")).thenReturn(false);
+        when(empresaRepo.findById(1)).thenReturn(Optional.of(emp));
+        when(catRepo.findById(1)).thenReturn(Optional.of(cat));
+        when(productoRepo.save(any(Producto.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        UsuarioPrincipal sesionVendedor = new UsuarioPrincipal(2, 1, "cgomez@ferreteriaaustral.cl", "Carlos Gómez", "Vendedor");
+
+        var dto = catalogoService.crearProducto(sesionVendedor, Map.of(
+                "idCategoria", 1,
+                "sku", "SKU-999",
+                "nombreProducto", "Generador Industrial",
+                "precioUnitario", "250000",
+                "stockDisponible", 999,
+                "visible", true
+        ));
+
+        assertEquals(0, dto.stockDisponible());
+        assertFalse(dto.visible());
+    }
 }

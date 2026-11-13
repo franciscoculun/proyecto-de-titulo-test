@@ -7,6 +7,7 @@ import cl.iplacex.andesb2b.service.AuthUsuarioService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +18,7 @@ import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.Normalizer;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +28,9 @@ public class AuthUsuarioController {
 
     private final AuthUsuarioService authService;
     private final SecurityContextRepository securityContextRepository;
+
+    @Value("${app.demo:false}")
+    private boolean appDemo;
 
     public AuthUsuarioController(AuthUsuarioService authService,
                                  SecurityContextRepository securityContextRepository) {
@@ -97,10 +102,12 @@ public class AuthUsuarioController {
     public ResponseEntity< ? > recuperar(@RequestBody Map< String, String > body) {
         try {
             String token = authService.generarTokenRecuperacion(body.get("email"));
-            return ResponseEntity.ok(Map.of(
-                    "mensaje", "Código de verificación generado y enviado al correo corporativo.",
-                    "tokenDemo", token
-            ));
+            Map< String, String > respuesta = new HashMap<>();
+            respuesta.put("mensaje", "Solicitud procesada. Ingresa el código de verificación enviado a tu correo corporativo.");
+            if (appDemo) {
+                respuesta.put("tokenDemo", token);
+            }
+            return ResponseEntity.ok(respuesta);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
