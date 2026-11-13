@@ -97,10 +97,18 @@ CREATE TABLE Documentos_Cobro (
 -- ========================================================
 CREATE OR REPLACE FUNCTION fn_auditar_precio()
 RETURNS TRIGGER AS $$
+DECLARE
+    v_id_usuario INT;
 BEGIN
-    IF NEW.precio_unitario <> OLD.precio_unitario THEN
-        INSERT INTO Log_Auditoria_Precios (id_producto, precio_anterior, precio_nuevo)
-        VALUES (NEW.id_producto, OLD.precio_unitario, NEW.precio_unitario);
+    IF NEW.precio_unitario IS DISTINCT FROM OLD.precio_unitario THEN
+        BEGIN
+            v_id_usuario := NULLIF(current_setting('app.id_usuario', true), '')::INT;
+        EXCEPTION WHEN OTHERS THEN
+            v_id_usuario := NULL;
+        END;
+
+        INSERT INTO Log_Auditoria_Precios (id_producto, id_usuario, precio_anterior, precio_nuevo, fecha_modificacion)
+        VALUES (NEW.id_producto, v_id_usuario, OLD.precio_unitario, NEW.precio_unitario, CURRENT_TIMESTAMP);
     END IF;
     RETURN NEW;
 END;

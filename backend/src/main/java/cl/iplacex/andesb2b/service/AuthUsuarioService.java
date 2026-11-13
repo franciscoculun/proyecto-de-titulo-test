@@ -1,5 +1,7 @@
 package cl.iplacex.andesb2b.service;
 
+import cl.iplacex.andesb2b.config.UsuarioPrincipal;
+import cl.iplacex.andesb2b.model.Dtos.UsuarioDto;
 import cl.iplacex.andesb2b.model.Empresa;
 import cl.iplacex.andesb2b.model.Rol;
 import cl.iplacex.andesb2b.model.Usuario;
@@ -46,7 +48,6 @@ public class AuthUsuarioService {
 
         String cuerpo = limpio.substring(0, limpio.length() - 1);
         char dvIngresado = limpio.charAt(limpio.length() - 1);
-
         if (!cuerpo.matches("\\d+")) return false;
 
         int suma = 0;
@@ -57,46 +58,50 @@ public class AuthUsuarioService {
         }
 
         int resto = 11 - (suma % 11);
-        char dvEsperado;
-        if (resto == 11) dvEsperado = '0';
-        else if (resto == 10) dvEsperado = 'K';
-        else dvEsperado = (char) ('0' + resto);
-
+        char dvEsperado = (resto == 11) ? '0' : (resto == 10) ? 'K' : (char) ('0' + resto);
         return dvIngresado == dvEsperado;
     }
 
-    public Usuario login(String email, String password) {
+    @Transactional(readOnly = true)
+    public Usuario autenticarEntidad(String email, String password) {
         if (!esEmailValido(email)) {
-            throw new IllegalArgumentException("El formato del correo electrónico no es válido (ej: nombre@empresa.cl).");
+            throw new IllegalArgumentException("El formato del correo electrónico no es válido.");
         }
         Usuario u = usuarioRepo.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("Credenciales inválidas o correo no registrado."));
         if (!Boolean.TRUE.equals(u.getActivo())) {
-            throw new IllegalArgumentException("La cuenta de usuario se encuentra desactivada.");
+            throw new IllegalArgumentException("La cuenta de usuario se encuentra suspendida.");
         }
-        if (!passwordEncoder.matches(password, u.getPasswordHash())) {
+        if (password == null || !passwordEncoder.matches(password, u.getPasswordHash())) {
             throw new IllegalArgumentException("Contraseña incorrecta.");
         }
         return u;
     }
 
+    @Transactional(readOnly = true)
+    public UsuarioDto obtenerPerfilActual(Integer idUsuario) {
+        Usuario u = usuarioRepo.findById(idUsuario)
+                .orElseThrow(() -> new IllegalArgumentException("Sesión no válida."));
+        return UsuarioDto.from(u);
+    }
+
     @Transactional
-    public Usuario registrarEmpresaYAdmin(Map<String, String> datos) {
+    public UsuarioDto registrarEmpresaYAdmin(Map< String, String > datos) {
         String rutEmpresa = datos.get("rutEmpresa");
         String rutUsuario = datos.get("rutUsuario");
         String email = datos.get("email") != null ? datos.get("email").trim().toLowerCase() : "";
 
         if (!esRutValido(rutEmpresa)) {
-            throw new IllegalArgumentException("El RUT de la empresa no es válido según cálculo de dígito verificador (Módulo 11).");
+            throw new IllegalArgumentException("El RUT de la empresa no es válido (Módulo 11).");
         }
         if (!esRutValido(rutUsuario)) {
-            throw new IllegalArgumentException("El RUT del representante no es válido según cálculo de dígito verificador (Módulo 11).");
+            throw new IllegalArgumentException("El RUT del representante no es válido (Módulo 11).");
         }
         if (!esEmailValido(email)) {
-            throw new IllegalArgumentException("El correo electrónico debe incluir '@' y un dominio válido (.cl, .com, etc.).");
+            throw new IllegalArgumentException("El correo electrónico debe incluir '@' y un dominio válido.");
         }
         if (empresaRepo.existsByRutEmpresa(rutEmpresa)) {
-            throw new IllegalArgumentException("El RUT de la empresa ya se encuentra registrado en AndesB2B.");
+            throw new IllegalArgumentException("El RUT de la empresa ya se encuentra registrado.");
         }
         if (usuarioRepo.existsByRutUsuario(rutUsuario)) {
             throw new IllegalArgumentException("El RUT del representante ya se encuentra registrado.");
@@ -114,7 +119,7 @@ public class AuthUsuarioService {
         emp = empresaRepo.save(emp);
 
         Rol rolAdmin = rolRepo.findByNombreRol("Administrador")
-                .orElseThrow(() -> new IllegalStateException("Rol Administrador no configurado."));
+                .orElseThrow(() -> new IllegalStateException("Rol Administrador no existe en la base de datos."));
 
         Usuario admin = new Usuario();
         admin.setEmpresa(emp);
@@ -125,13 +130,13 @@ public class AuthUsuarioService {
         admin.setPasswordHash(passwordEncoder.encode(datos.get("password")));
         admin.setActivo(true);
 
-        return usuarioRepo.save(admin);
+        return UsuarioDto.from(usuarioRepo.save(admin));
     }
 
     @Transactional
     public String generarTokenRecuperacion(String email) {
         if (!esEmailValido(email)) {
-            throw new IllegalArgumentException("Ingresa un correo electrónico con formato válido.");
+            throw new IllegalArgumentException("Ingresa un correo electrónico válido.");
         }
         Usuario u = usuarioRepo.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("No existe una cuenta asociada a ese correo."));
@@ -146,40 +151,38 @@ public class AuthUsuarioService {
         Usuario u = usuarioRepo.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("Correo no encontrado."));
         if (u.getTokenRecuperacion() == null || !u.getTokenRecuperacion().equals(token)) {
-            throw new IllegalArgumentException("Token de recuperación inválido o expirado.");
+            throw new IllegalArgumentException("Código de verificación inválido o expirado.");
         }
         u.setPasswordHash(passwordEncoder.encode(nuevaPassword));
         u.setTokenRecuperacion(null);
         usuarioRepo.save(u);
     }
 
-    public List< Usuario > listarPorEmpresa(Integer idEmpresa) {
-        return usuarioRepo.findByEmpresaIdEmpresa(idEmpresa);
-    }
-
-    public List< Rol > listarRoles() {
-        return rolRepo.findAll();
+    @Transactional(readOnly = true)
+    public List< UsuarioDto > listarPorMiEmpresa(UsuarioPrincipal sesion) {
+        return usuarioRepo.findByEmpresaIdEmpresa(sesion.idEmpresa())
+                .stream().map(UsuarioDto::from).toList();
     }
 
     @Transactional
-    public Usuario crearUsuarioPyme(Map<String, String> datos) {
+    public UsuarioDto crearUsuarioEnMiEmpresa(UsuarioPrincipal sesion, Map< String, String > datos) {
         String rutUsuario = datos.get("rutUsuario");
         String email = datos.get("email") != null ? datos.get("email").trim().toLowerCase() : "";
 
         if (!esRutValido(rutUsuario)) {
-            throw new IllegalArgumentException("El RUT del trabajador no es válido (Módulo 11).");
+            throw new IllegalArgumentException("El RUT del colaborador no es válido (Módulo 11).");
         }
         if (!esEmailValido(email)) {
             throw new IllegalArgumentException("El correo electrónico no tiene un formato válido.");
         }
         if (usuarioRepo.existsByRutUsuario(rutUsuario)) {
-            throw new IllegalArgumentException("El RUT del trabajador ya está registrado.");
+            throw new IllegalArgumentException("El RUT del colaborador ya está registrado.");
         }
         if (usuarioRepo.existsByEmail(email)) {
             throw new IllegalArgumentException("El correo electrónico ya está registrado.");
         }
 
-        Empresa emp = empresaRepo.findById(Integer.valueOf(datos.get("idEmpresa")))
+        Empresa emp = empresaRepo.findById(sesion.idEmpresa())
                 .orElseThrow(() -> new IllegalArgumentException("Empresa no encontrada."));
         Rol rol = rolRepo.findByNombreRol(datos.get("nombreRol"))
                 .orElseThrow(() -> new IllegalArgumentException("Rol no válido."));
@@ -192,13 +195,16 @@ public class AuthUsuarioService {
         u.setEmail(email);
         u.setPasswordHash(passwordEncoder.encode(datos.getOrDefault("password", "Andes2026!")));
         u.setActivo(true);
-        return usuarioRepo.save(u);
+        return UsuarioDto.from(usuarioRepo.save(u));
     }
 
     @Transactional
-    public Usuario actualizarUsuario(Integer idUsuario, Map<String, Object> datos) {
+    public UsuarioDto actualizarUsuarioDeMiEmpresa(UsuarioPrincipal sesion, Integer idUsuario, Map< String, Object > datos) {
         Usuario u = usuarioRepo.findById(idUsuario)
                 .orElseThrow(() -> new IllegalArgumentException("Usuario no encontrado."));
+        if (!u.getEmpresa().getIdEmpresa().equals(sesion.idEmpresa())) {
+            throw new IllegalArgumentException("No tienes permiso para modificar usuarios de otra empresa.");
+        }
         if (datos.containsKey("nombreRol")) {
             Rol rol = rolRepo.findByNombreRol(datos.get("nombreRol").toString())
                     .orElseThrow(() -> new IllegalArgumentException("Rol no encontrado."));
@@ -207,6 +213,6 @@ public class AuthUsuarioService {
         if (datos.containsKey("activo")) {
             u.setActivo(Boolean.valueOf(datos.get("activo").toString()));
         }
-        return usuarioRepo.save(u);
+        return UsuarioDto.from(usuarioRepo.save(u));
     }
 }

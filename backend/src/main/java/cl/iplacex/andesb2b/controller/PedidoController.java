@@ -1,8 +1,10 @@
 package cl.iplacex.andesb2b.controller;
 
-import cl.iplacex.andesb2b.model.DocumentoCobro;
+import cl.iplacex.andesb2b.config.UsuarioPrincipal;
+import cl.iplacex.andesb2b.model.Dtos.*;
 import cl.iplacex.andesb2b.service.PedidoService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,63 +21,71 @@ public class PedidoController {
     }
 
     @PostMapping
-    public ResponseEntity<?> crearPedido(@RequestBody Map<String, Object> body) {
+    public ResponseEntity< ? > crearPedido(@AuthenticationPrincipal UsuarioPrincipal sesion,
+                                           @RequestBody Map< String, Object > body) {
         try {
-            return ResponseEntity.ok(pedidoService.crearPedido(body));
+            return ResponseEntity.ok(pedidoService.crearPedido(sesion, body));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    @GetMapping("/compras/{idEmpresa}")
-    public List< Map<String, Object> > listarCompras(@PathVariable Integer idEmpresa) {
-        return pedidoService.listarComprasPorEmpresa(idEmpresa);
+    @GetMapping("/mis-compras")
+    public List< PedidoResumenDto > listarMisCompras(@AuthenticationPrincipal UsuarioPrincipal sesion) {
+        return pedidoService.listarMisCompras(sesion);
     }
 
-    @GetMapping("/ventas/{idEmpresa}")
-    public List< Map<String, Object> > listarVentas(@PathVariable Integer idEmpresa) {
-        return pedidoService.listarVentasPorEmpresa(idEmpresa);
+    @GetMapping("/mis-ventas")
+    public List< PedidoResumenDto > listarMisVentas(@AuthenticationPrincipal UsuarioPrincipal sesion) {
+        return pedidoService.listarMisVentas(sesion);
     }
 
     @PutMapping("/{idPedido}/cotizar")
-    public ResponseEntity<?> cotizarEnvio(@PathVariable Integer idPedido, @RequestBody Map<String, Object> body) {
+    public ResponseEntity< ? > cotizarEnvio(@AuthenticationPrincipal UsuarioPrincipal sesion,
+                                            @PathVariable Integer idPedido,
+                                            @RequestBody Map< String, Object > body) {
         try {
-            return ResponseEntity.ok(pedidoService.cotizarEnvio(idPedido, body));
+            return ResponseEntity.ok(pedidoService.cotizarEnvio(sesion, idPedido, body));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @PutMapping("/{idPedido}/respuesta")
-    public ResponseEntity<?> responderCotizacion(@PathVariable Integer idPedido, @RequestBody Map<String, Boolean> body) {
+    public ResponseEntity< ? > responderCotizacion(@AuthenticationPrincipal UsuarioPrincipal sesion,
+                                                   @PathVariable Integer idPedido,
+                                                   @RequestBody Map< String, Boolean > body) {
         try {
             boolean aprobar = Boolean.TRUE.equals(body.get("aprobar"));
-            return ResponseEntity.ok(pedidoService.responderCotizacion(idPedido, aprobar));
+            return ResponseEntity.ok(pedidoService.responderCotizacion(sesion, idPedido, aprobar));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @PutMapping("/{idPedido}/seguimiento")
-    public ResponseEntity<?> registrarSeguimiento(@PathVariable Integer idPedido, @RequestBody Map<String, String> body) {
+    public ResponseEntity< ? > registrarSeguimiento(@AuthenticationPrincipal UsuarioPrincipal sesion,
+                                                    @PathVariable Integer idPedido,
+                                                    @RequestBody Map< String, String > body) {
         try {
-            return ResponseEntity.ok(pedidoService.registrarSeguimiento(idPedido, body.get("codigoSeguimiento")));
+            return ResponseEntity.ok(pedidoService.registrarSeguimiento(sesion, idPedido, body.get("codigoSeguimiento")));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
     @PutMapping("/{idPedido}/recepcion")
-    public ResponseEntity<?> confirmarRecepcion(@PathVariable Integer idPedido) {
+    public ResponseEntity< ? > confirmarRecepcion(@AuthenticationPrincipal UsuarioPrincipal sesion,
+                                                  @PathVariable Integer idPedido) {
         try {
-            return ResponseEntity.ok(pedidoService.confirmarRecepcion(idPedido));
+            return ResponseEntity.ok(pedidoService.confirmarRecepcion(sesion, idPedido));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 
-    @GetMapping("/estado-cuenta/{idEmpresa}")
-    public List<DocumentoCobro> listarEstadoCuenta(@PathVariable Integer idEmpresa) {
-        return pedidoService.listarEstadoCuenta(idEmpresa);
+    @GetMapping("/mi-estado-cuenta")
+    public List< DocumentoCobroDto > listarMiEstadoCuenta(@AuthenticationPrincipal UsuarioPrincipal sesion) {
+        return pedidoService.listarMiEstadoCuenta(sesion);
     }
 }

@@ -1,7 +1,11 @@
 package cl.iplacex.andesb2b.service;
 
+import cl.iplacex.andesb2b.config.UsuarioPrincipal;
 import cl.iplacex.andesb2b.model.*;
+import cl.iplacex.andesb2b.model.Dtos.*;
 import cl.iplacex.andesb2b.repository.*;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,43 +19,59 @@ public class CatalogoService {
     private final ProductoRepository productoRepo;
     private final CategoriaRepository categoriaRepo;
     private final EmpresaRepository empresaRepo;
-    private final UsuarioRepository usuarioRepo;
     private final LogAuditoriaPrecioRepository logRepo;
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     public CatalogoService(ProductoRepository productoRepo, CategoriaRepository categoriaRepo,
-                           EmpresaRepository empresaRepo, UsuarioRepository usuarioRepo,
-                           LogAuditoriaPrecioRepository logRepo) {
+                           EmpresaRepository empresaRepo, LogAuditoriaPrecioRepository logRepo) {
         this.productoRepo = productoRepo;
         this.categoriaRepo = categoriaRepo;
         this.empresaRepo = empresaRepo;
-        this.usuarioRepo = usuarioRepo;
         this.logRepo = logRepo;
     }
 
-    public List<Producto> listarCatalogoActivo() {
-        return productoRepo.findByVisibleTrue();
+    private void validarRolVendedorOAdmin(UsuarioPrincipal sesion) {
+        if (!"Vendedor".equals(sesion.rol()) && !"Administrador".equals(sesion.rol())) {
+            throw new IllegalArgumentException("Solo usuarios con rol Vendedor o Administrador pueden gestionar el catálogo.");
+        }
     }
 
-    public List<Producto> listarPorEmpresa(Integer idEmpresa) {
-        return productoRepo.findByEmpresaVendedoraIdEmpresa(idEmpresa);
+    @Transactional(readOnly = true)
+    public List< ProductoDto > listarCatalogoActivo() {
+        return productoRepo.findByVisibleTrue().stream().map(ProductoDto::from).toList();
     }
 
-    public List<Categoria> listarCategorias() {
-        return categoriaRepo.findAll();
+    @Transactional(readOnly = true)
+    public List< ProductoDto > listarMiInventario(UsuarioPrincipal sesion) {
+        validarRolVendedorOAdmin(sesion);
+        return productoRepo.findByEmpresaVendedoraIdEmpresa(sesion.idEmpresa())
+                .stream().map(ProductoDto::from).toList();
     }
 
-    public List<LogAuditoriaPrecio> listarAuditoria() {
-        return logRepo.findAllByOrderByFechaModificacionDesc();
+    @Transactional(readOnly = true)
+    public List< CategoriaDto > listarCategorias() {
+        return categoriaRepo.findAll().stream().map(CategoriaDto::from).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List< LogAuditoriaDto > listarAuditoriaMiEmpresa(UsuarioPrincipal sesion) {
+        return logRepo.findAllByOrderByFechaModificacionDesc().stream()
+                .filter(l -> l.getProducto().getEmpresaVendedora().getIdEmpresa().equals(sesion.idEmpresa()))
+                .map(LogAuditoriaDto::from)
+                .toList();
     }
 
     @Transactional
-    public Producto crearProducto(Map<String, Object> datos) {
-        String sku = datos.get("sku").toString();
+    public ProductoDto crearProducto(UsuarioPrincipal sesion, Map< String, Object > datos) {
+        validarRolVendedorOAdmin(sesion);
+        String sku = datos.get("sku").toString().trim();
         if (productoRepo.existsBySku(sku)) {
             throw new IllegalArgumentException("El código SKU ya existe en el catálogo.");
         }
 
-        Empresa emp = empresaRepo.findById(Integer.valueOf(datos.get("idEmpresaVendedora").toString()))
+        Empresa emp = empresaRepo.findById(sesion.idEmpresa())
                 .orElseThrow(() -> new IllegalArgumentException("Empresa vendedora no encontrada."));
         Categoria cat = categoriaRepo.findById(Integer.valueOf(datos.get("idCategoria").toString()))
                 .orElseThrow(() -> new IllegalArgumentException("Categoría no encontrada."));
@@ -66,23 +86,32 @@ public class CatalogoService {
         p.setEmpresaVendedora(emp);
         p.setCategoria(cat);
         p.setSku(sku);
-        p.setNombreProducto(datos.get("nombreProducto").toString());
+        p.setNombreProducto(datos.get("nombreProducto").toString().trim());
         p.setPrecioUnitario(precio);
         p.setStockDisponible(stock);
         p.setVisible(Boolean.valueOf(datos.getOrDefault("visible", "false").toString()));
 
-        return productoRepo.save(p);
+        return ProductoDto.from(productoRepo.save(p));
     }
 
     @Transactional
-    public Producto actualizarProducto(Integer idProducto, Map<String, Object> datos) {
+    public ProductoDto actualizarProducto(UsuarioPrincipal sesion, Integer idProducto, Map< String, Object > datos) {
+        validarRolVendedorOAdmin(sesion);
+
         Producto p = productoRepo.findById(idProducto)
                 .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado."));
 
-        BigDecimal precioAnterior = p.getPrecioUnitario();
+        if (!p.getEmpresaVendedora().getIdEmpresa().equals(sesion.idEmpresa())) {
+            throw new IllegalArgumentException("No puedes modificar productos pertenecientes a otra empresa.");
+        }
+
+        // Configurar variable de sesión local en PostgreSQL para el trigger fn_auditar_precio()
+        entityManager.createNativeQuery("SELECT set_config('app.id_usuario', :uid, true)")
+                .setParameter("uid", String.valueOf(sesion.idUsuario()))
+                .getSingleResult();
 
         if (datos.containsKey("nombreProducto")) {
-            p.setNombreProducto(datos.get("nombreProducto").toString());
+            p.setNombreProducto(datos.get("nombreProducto").toString().trim());
         }
         if (datos.containsKey("precioUnitario")) {
             BigDecimal nuevoPrecio = new BigDecimal(datos.get("precioUnitario").toString());
@@ -102,22 +131,6 @@ public class CatalogoService {
             p.setVisible(Boolean.valueOf(datos.get("visible").toString()));
         }
 
-        Producto guardado = productoRepo.saveAndFlush(p);
-
-        // Si cambió el precio y viene idUsuario, asociamos el autor al registro creado por el trigger SQL
-        if (datos.containsKey("idUsuario") && p.getPrecioUnitario().compareTo(precioAnterior) != 0) {
-            Integer idUsuario = Integer.valueOf(datos.get("idUsuario").toString());
-            usuarioRepo.findById(idUsuario).ifPresent(u -> {
-                List<LogAuditoriaPrecio> logs = logRepo.findAllByOrderByFechaModificacionDesc();
-                logs.stream()
-                    .filter(l -> l.getProducto().getIdProducto().equals(idProducto) && l.getUsuario() == null)
-                    .findFirst()
-                    .ifPresent(l -> {
-                        l.setUsuario(u);
-                        logRepo.save(l);
-                    });
-            });
-        }
-        return guardado;
+        return ProductoDto.from(productoRepo.saveAndFlush(p));
     }
 }
