@@ -152,7 +152,7 @@ class Andesb2bApplicationTests {
     }
 
 	@Test
-    void productoNuevoNaceComoBorradorYStockCeroAunqueClienteEnvieOtrosValores() {
+    void productoNuevoUsaStockCeroPorDefectoCuandoNoSeIngresaYRespetaStockSiSeIndica() {
         CategoriaRepository catRepo = mock(CategoriaRepository.class);
         LogAuditoriaPrecioRepository logRepo = mock(LogAuditoriaPrecioRepository.class);
         cl.iplacex.andesb2b.service.CatalogoService catalogoService =
@@ -163,23 +163,34 @@ class Andesb2bApplicationTests {
         Categoria cat = new Categoria();
         cat.setIdCategoria(1);
 
-        when(productoRepo.existsBySku("SKU-999")).thenReturn(false);
+        when(productoRepo.existsBySku(any())).thenReturn(false);
         when(empresaRepo.findById(1)).thenReturn(Optional.of(emp));
         when(catRepo.findById(1)).thenReturn(Optional.of(cat));
         when(productoRepo.save(any(Producto.class))).thenAnswer(inv -> inv.getArgument(0));
 
         UsuarioPrincipal sesionVendedor = new UsuarioPrincipal(2, 1, "cgomez@ferreteriaaustral.cl", "Carlos Gómez", "Vendedor");
 
-        var dto = catalogoService.crearProducto(sesionVendedor, Map.of(
+        // Caso 1: Sin ingresar stock ni visibilidad -> asume stock 0 y borrador (false) por defecto
+        var dtoPorDefecto = catalogoService.crearProducto(sesionVendedor, Map.of(
+                "idCategoria", 1,
+                "sku", "SKU-998",
+                "nombreProducto", "Compresor Industrial",
+                "precioUnitario", "250000",
+                "stockDisponible", ""
+        ));
+        assertEquals(0, dtoPorDefecto.stockDisponible());
+        assertFalse(dtoPorDefecto.visible());
+
+        // Caso 2: Ingresando stock explícito -> respeta el stock indicado por el vendedor
+        var dtoConStock = catalogoService.crearProducto(sesionVendedor, Map.of(
                 "idCategoria", 1,
                 "sku", "SKU-999",
                 "nombreProducto", "Generador Industrial",
                 "precioUnitario", "250000",
-                "stockDisponible", 999,
+                "stockDisponible", 50,
                 "visible", true
         ));
-
-        assertEquals(0, dto.stockDisponible());
-        assertFalse(dto.visible());
+        assertEquals(50, dtoConStock.stockDisponible());
+        assertTrue(dtoConStock.visible());
     }
 }

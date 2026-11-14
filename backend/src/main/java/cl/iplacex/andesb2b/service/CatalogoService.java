@@ -64,7 +64,7 @@ public class CatalogoService {
     }
 
     @Transactional
-    public ProductoDto crearProducto(UsuarioPrincipal sesion, Map< String, Object > datos) {
+    public ProductoDto crearProducto(UsuarioPrincipal sesion, Map<String, Object> datos) {
         validarRolVendedorOAdmin(sesion);
         String sku = datos.get("sku").toString().trim();
         if (productoRepo.existsBySku(sku)) {
@@ -81,15 +81,28 @@ public class CatalogoService {
             throw new IllegalArgumentException("El precio unitario no puede ser negativo.");
         }
 
+        // Si no se ingresa stock (nulo o vacío), se asigna 0 por defecto
+        int stock = 0;
+        Object stockRaw = datos.get("stockDisponible");
+        if (stockRaw != null && !stockRaw.toString().trim().isEmpty()) {
+            stock = Integer.parseInt(stockRaw.toString().trim());
+            if (stock < 0) {
+                throw new IllegalArgumentException("El stock disponible no puede ser negativo.");
+            }
+        }
+
+        // Si no se indica visibilidad, nace como borrador (false) por defecto
+        boolean visible = datos.get("visible") != null
+                && Boolean.parseBoolean(datos.get("visible").toString());
+
         Producto p = new Producto();
         p.setEmpresaVendedora(emp);
         p.setCategoria(cat);
         p.setSku(sku);
         p.setNombreProducto(datos.get("nombreProducto").toString().trim());
         p.setPrecioUnitario(precio);
-        // Regla de negocio: todo producto nuevo nace como borrador (visible=false) y con stock inicial 0
-        p.setStockDisponible(0);
-        p.setVisible(false);
+        p.setStockDisponible(stock);
+        p.setVisible(visible);
 
         return ProductoDto.from(productoRepo.save(p));
     }
